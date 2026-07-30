@@ -112,6 +112,13 @@ class Settings:
     tts_piper_noise_w: float  # Phoneme width variation
     tts_piper_sentence_silence: float  # Post-sentence silence in seconds
 
+    # Kokoro TTS (CPU, via kokoro-onnx)
+    kokoro_voice: str  # Voice ID — see KOKORO_VOICES in voice/tts_kokoro.py
+    kokoro_speed: float  # Speech speed (1.0 = normal)
+    kokoro_lang: str  # Phonemization language ("en-us" or "en-gb")
+    kokoro_model_path: str | None  # Path to .onnx model; None = auto-download
+    kokoro_voices_path: str | None  # Path to voices .bin; None = auto-download
+
     # Voice Input & Audio
     voice_device: str | None
     sample_rate: int
@@ -416,6 +423,13 @@ def get_default_config() -> Dict[str, Any]:
         "tts_piper_noise_w": 1.0,  # Phoneme width variation (higher = more lively)
         "tts_piper_sentence_silence": 0.2,  # Post-sentence silence in seconds
 
+        # Kokoro TTS (CPU pipeline via kokoro-onnx)
+        "kokoro_voice": "af_heart",  # Voice ID (see KOKORO_VOICES in voice/tts_kokoro.py)
+        "kokoro_speed": 1.0,         # Speech speed multiplier
+        "kokoro_lang": "en-us",      # Phonemization language
+        "kokoro_model_path": None,   # Path to ONNX model; None = auto-download
+        "kokoro_voices_path": None,  # Path to voices .bin; None = auto-download
+
         # Voice Input & Audio
         "voice_device": None,
         "sample_rate": 16000,
@@ -623,6 +637,15 @@ def load_settings() -> Settings:
     tts_piper_noise_w = float(merged.get("tts_piper_noise_w", 1.0))
     tts_piper_sentence_silence = float(merged.get("tts_piper_sentence_silence", 0.2))
 
+    # Kokoro TTS (CPU pipeline)
+    kokoro_voice = str(merged.get("kokoro_voice", "af_heart"))
+    kokoro_speed = float(merged.get("kokoro_speed", 1.0))
+    kokoro_lang = str(merged.get("kokoro_lang", "en-us"))
+    kokoro_model_path_val = merged.get("kokoro_model_path")
+    kokoro_model_path = None if kokoro_model_path_val in (None, "", "null") else str(kokoro_model_path_val)
+    kokoro_voices_path_val = merged.get("kokoro_voices_path")
+    kokoro_voices_path = None if kokoro_voices_path_val in (None, "", "null") else str(kokoro_voices_path_val)
+
     voice_device_val = merged.get("voice_device")
     voice_device = None if voice_device_val in (None, "", "default", "system") else str(voice_device_val)
     voice_block_seconds = float(merged.get("voice_block_seconds", 4.0))
@@ -777,6 +800,13 @@ def load_settings() -> Settings:
         tts_piper_noise_scale=tts_piper_noise_scale,
         tts_piper_noise_w=tts_piper_noise_w,
         tts_piper_sentence_silence=tts_piper_sentence_silence,
+
+        # Kokoro TTS (CPU pipeline)
+        kokoro_voice=kokoro_voice,
+        kokoro_speed=kokoro_speed,
+        kokoro_lang=kokoro_lang,
+        kokoro_model_path=kokoro_model_path,
+        kokoro_voices_path=kokoro_voices_path,
 
         # Voice Input & Audio
         voice_device=voice_device,
