@@ -79,21 +79,7 @@ class Settings:
 
     # Text-to-Speech
     tts_enabled: bool
-    tts_engine: str  # "kokoro" (default), "piper" or "chatterbox"
-    tts_voice: str | None
-    tts_rate: int | None  # Words per minute (WPM), 200=normal
-    tts_chatterbox_device: str  # "cuda", "auto", or "cpu" for Chatterbox
-    tts_chatterbox_audio_prompt: str | None  # Path to audio file for voice cloning with Chatterbox
-    tts_chatterbox_exaggeration: float  # Emotion exaggeration control (0.0-1.0+)
-    tts_chatterbox_cfg_weight: float  # CFG weight for quality/speed trade-off
-
-    # Piper TTS
-    tts_piper_model_path: str | None  # Path to .onnx voice model
-    tts_piper_speaker: int | None  # Speaker ID for multi-speaker models
-    tts_piper_length_scale: float  # Speed: <1.0 faster, >1.0 slower
-    tts_piper_noise_scale: float  # Audio variation
-    tts_piper_noise_w: float  # Phoneme width variation
-    tts_piper_sentence_silence: float  # Post-sentence silence in seconds
+    tts_rate: int | None  # Approximate words per minute, used by echo detection
 
     # Kokoro TTS (CPU, via kokoro-onnx)
     kokoro_voice: str  # Voice ID — see KOKORO_VOICES in voice/tts_kokoro.py
@@ -290,13 +276,9 @@ def _migrate_config(cfg_path: Path, cfg_json: Dict[str, Any]) -> Dict[str, Any]:
     # Get current migration version (0 if not set = pre-migration config)
     migration_version = cfg_json.get("_config_version", 0)
 
-    # Migration v1: tts_engine "system" -> "piper"
-    # Piper is now the default TTS with auto-download support.
+    # Migration v1: version stamp only (Kokoro is the sole TTS engine now,
+    # so legacy tts_engine values are simply ignored).
     if migration_version < 1:
-        if cfg_json.get("tts_engine") == "system":
-            cfg_json["tts_engine"] = "piper"
-            print("📢 Upgraded TTS engine: system → piper (neural voice with auto-download)", flush=True)
-            print("   To revert: set \"tts_engine\": \"system\" in config.json", flush=True)
         cfg_json["_config_version"] = 1
         modified = True
 
@@ -392,21 +374,7 @@ def get_default_config() -> Dict[str, Any]:
 
         # Text-to-Speech
         "tts_enabled": True,
-        "tts_engine": "kokoro",  # "kokoro" (default), "piper" or "chatterbox"
-        "tts_voice": None,
-        "tts_rate": 200,  # Words per minute (WPM), 200=normal
-        "tts_chatterbox_device": "cuda",  # "cuda" (recommended), "auto", or "cpu"
-        "tts_chatterbox_audio_prompt": None,  # Path to audio file for voice cloning
-        "tts_chatterbox_exaggeration": 0.5,  # Emotion exaggeration (0.0-1.0+)
-        "tts_chatterbox_cfg_weight": 0.5,  # CFG weight for quality/speed trade-off
-
-        # Piper TTS
-        "tts_piper_model_path": None,  # Path to .onnx voice model
-        "tts_piper_speaker": None,  # Speaker ID for multi-speaker models
-        "tts_piper_length_scale": 0.65,  # Speed: <1.0 faster, >1.0 slower (0.65 = ~30% faster)
-        "tts_piper_noise_scale": 0.8,  # Audio variation (higher = more expressive)
-        "tts_piper_noise_w": 1.0,  # Phoneme width variation (higher = more lively)
-        "tts_piper_sentence_silence": 0.2,  # Post-sentence silence in seconds
+        "tts_rate": 200,  # Approximate words per minute, used by echo detection
 
         # Kokoro TTS (CPU pipeline via kokoro-onnx)
         # Voice ID or weighted blend "voice:weight,..." (see KOKORO_VOICES in voice/tts_kokoro.py)
@@ -594,36 +562,11 @@ def load_settings() -> Settings:
     use_stdin = bool(merged.get("use_stdin", False))
     active_profiles = _ensure_list(merged.get("active_profiles"))
     tts_enabled = bool(merged.get("tts_enabled", True))
-    tts_engine = str(merged.get("tts_engine", "kokoro")).lower()
-    if tts_engine not in ("kokoro", "piper", "chatterbox"):
-        tts_engine = "kokoro"  # Default to kokoro if invalid value
-    tts_voice_val = merged.get("tts_voice")
-    tts_voice = None if tts_voice_val in (None, "", "null") else str(tts_voice_val)
     tts_rate_val = merged.get("tts_rate")
     try:
         tts_rate = None if tts_rate_val in (None, "", "null") else int(tts_rate_val)
     except Exception:
         tts_rate = None
-    tts_chatterbox_device = str(merged.get("tts_chatterbox_device", "cuda")).lower()
-    if tts_chatterbox_device not in ("cuda", "auto", "cpu"):
-        tts_chatterbox_device = "cuda"  # Default to cuda if invalid value
-    tts_chatterbox_audio_prompt_val = merged.get("tts_chatterbox_audio_prompt")
-    tts_chatterbox_audio_prompt = None if tts_chatterbox_audio_prompt_val in (None, "", "null") else str(tts_chatterbox_audio_prompt_val)
-    tts_chatterbox_exaggeration = float(merged.get("tts_chatterbox_exaggeration", 0.5))
-    tts_chatterbox_cfg_weight = float(merged.get("tts_chatterbox_cfg_weight", 0.5))
-
-    # Piper TTS settings
-    tts_piper_model_path_val = merged.get("tts_piper_model_path")
-    tts_piper_model_path = None if tts_piper_model_path_val in (None, "", "null") else str(tts_piper_model_path_val)
-    tts_piper_speaker_val = merged.get("tts_piper_speaker")
-    try:
-        tts_piper_speaker = None if tts_piper_speaker_val in (None, "", "null") else int(tts_piper_speaker_val)
-    except Exception:
-        tts_piper_speaker = None
-    tts_piper_length_scale = float(merged.get("tts_piper_length_scale", 0.65))
-    tts_piper_noise_scale = float(merged.get("tts_piper_noise_scale", 0.8))
-    tts_piper_noise_w = float(merged.get("tts_piper_noise_w", 1.0))
-    tts_piper_sentence_silence = float(merged.get("tts_piper_sentence_silence", 0.2))
 
     # Kokoro TTS (CPU pipeline)
     kokoro_voice = str(merged.get("kokoro_voice") or defaults["kokoro_voice"])
@@ -774,21 +717,7 @@ def load_settings() -> Settings:
 
         # Text-to-Speech
         tts_enabled=tts_enabled,
-        tts_engine=tts_engine,
-        tts_voice=tts_voice,
         tts_rate=tts_rate,
-        tts_chatterbox_device=tts_chatterbox_device,
-        tts_chatterbox_audio_prompt=tts_chatterbox_audio_prompt,
-        tts_chatterbox_exaggeration=tts_chatterbox_exaggeration,
-        tts_chatterbox_cfg_weight=tts_chatterbox_cfg_weight,
-
-        # Piper TTS
-        tts_piper_model_path=tts_piper_model_path,
-        tts_piper_speaker=tts_piper_speaker,
-        tts_piper_length_scale=tts_piper_length_scale,
-        tts_piper_noise_scale=tts_piper_noise_scale,
-        tts_piper_noise_w=tts_piper_noise_w,
-        tts_piper_sentence_silence=tts_piper_sentence_silence,
 
         # Kokoro TTS (CPU pipeline)
         kokoro_voice=kokoro_voice,

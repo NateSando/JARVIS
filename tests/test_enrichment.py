@@ -312,7 +312,6 @@ class TestGraphContextReachesSystemMessage:
             location_ip_address=None,
             location_cgnat_resolve_public_ip=True,
             db_path=":memory:",
-            tts_engine="piper",
         )
 
         captured_messages: list = []
@@ -386,7 +385,6 @@ class TestObsidianNotesReachSystemMessage:
             location_ip_address=None,
             location_cgnat_resolve_public_ip=True,
             db_path=":memory:",
-            tts_engine="kokoro",
             obsidian_enabled=obsidian_enabled,
             obsidian_vault_path=str(vault.root),
         )

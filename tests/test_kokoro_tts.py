@@ -206,19 +206,17 @@ class TestKokoroEngine:
 @pytest.mark.unit
 class TestFactoryAndDefaults:
     def test_factory_builds_kokoro_engine(self):
-        engine = create_tts_engine(engine="kokoro", enabled=False)
+        engine = create_tts_engine(enabled=False)
         assert isinstance(engine, KokoroTTSEngine)
-
-    def test_kokoro_is_the_default_engine(self):
-        assert get_default_config()["tts_engine"] == "kokoro"
 
     def test_kokoro_setting_survives_load(self, tmp_path, monkeypatch):
         import json
         from jarvis import config as cfg_mod
 
         cfg_file = tmp_path / "config.json"
-        cfg_file.write_text(json.dumps({"tts_engine": "kokoro", "kokoro_robot_effect": 0.7}))
+        cfg_file.write_text(json.dumps({"tts_engine": "piper", "kokoro_robot_effect": 0.7}))
         monkeypatch.setenv("JARVIS_CONFIG_PATH", str(cfg_file))
         settings = cfg_mod.load_settings()
-        assert settings.tts_engine == "kokoro"
+        # Legacy engine choices are ignored: Kokoro is the only engine.
+        assert not hasattr(settings, "tts_engine")
         assert settings.kokoro_robot_effect == pytest.approx(0.7)

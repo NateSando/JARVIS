@@ -56,8 +56,6 @@ CATEGORIES = [
     ("llm", "🤖 LLM & AI Models"),
     ("tts", "🔊 Text-to-Speech"),
     ("kokoro", "🤖 Kokoro (J.A.R.V.I.S. Voice)"),
-    ("piper", "🎵 Piper TTS"),
-    ("chatterbox", "🎭 Chatterbox TTS"),
     ("voice_input", "🎤 Voice Input"),
     ("wake", "👂 Wake Word"),
     ("whisper", "🗣️ Speech Recognition"),
@@ -113,11 +111,8 @@ def _build_field_metadata() -> List[FieldMeta]:
     # --- Text-to-Speech ---
     f("tts_enabled", "Enable TTS", "Enable text-to-speech output",
       "tts", "bool")
-    f("tts_engine", "TTS Engine", "Speech synthesis engine",
-      "tts", "choice", choices=[("kokoro", "Kokoro (J.A.R.V.I.S., multilingual)"),
-                                ("piper", "Piper (Neural, English)"),
-                                ("chatterbox", "Chatterbox (Voice Cloning)")])
-    f("tts_rate", "Speech Rate", "Words per minute (200 = normal)",
+    f("tts_rate", "Spoken Words per Minute",
+      "Approximate speaking pace, used to recognise Jarvis's own voice in the microphone (echo detection)",
       "tts", "int", min_val=80, max_val=400, step=10, suffix="WPM", nullable=True)
 
     # --- Kokoro TTS ---
@@ -157,41 +152,6 @@ def _build_field_metadata() -> List[FieldMeta]:
     f("system_access_enabled", "System Information",
       "Let Jarvis read OS, CPU, memory, disk and process usage (no command lines or personal data)",
       "access", "bool")
-
-    # --- Piper TTS ---
-    f("tts_piper_length_scale", "Speed Scale",
-      "Speech speed: <1.0 faster, >1.0 slower",
-      "piper", "float", min_val=0.1, max_val=3.0, step=0.05)
-    f("tts_piper_noise_scale", "Audio Variation",
-      "Higher = more expressive",
-      "piper", "float", min_val=0.0, max_val=2.0, step=0.05)
-    f("tts_piper_noise_w", "Phoneme Width Variation",
-      "Higher = more lively rhythm",
-      "piper", "float", min_val=0.0, max_val=2.0, step=0.05)
-    f("tts_piper_sentence_silence", "Sentence Silence",
-      "Pause after each sentence",
-      "piper", "float", min_val=0.0, max_val=2.0, step=0.05, suffix="s")
-    f("tts_piper_model_path", "Custom Voice Model",
-      "Path to .onnx voice model (leave empty for default)",
-      "piper", "str", nullable=True)
-    f("tts_piper_speaker", "Speaker ID",
-      "Speaker index for multi-speaker models",
-      "piper", "int", min_val=0, max_val=99, nullable=True)
-
-    # --- Chatterbox TTS ---
-    f("tts_chatterbox_device", "Device",
-      "Compute device for Chatterbox",
-      "chatterbox", "choice",
-      choices=[("cuda", "CUDA (GPU)"), ("auto", "Auto"), ("cpu", "CPU")])
-    f("tts_chatterbox_exaggeration", "Exaggeration",
-      "Emotion exaggeration (0.0–1.0+)",
-      "chatterbox", "float", min_val=0.0, max_val=2.0, step=0.05)
-    f("tts_chatterbox_cfg_weight", "CFG Weight",
-      "Quality/speed trade-off",
-      "chatterbox", "float", min_val=0.0, max_val=2.0, step=0.05)
-    f("tts_chatterbox_audio_prompt", "Voice Clone Audio",
-      "Path to audio file for voice cloning (leave empty to disable)",
-      "chatterbox", "str", nullable=True)
 
     # --- Voice Input ---
     f("voice_device", "Input Device",

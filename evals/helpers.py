@@ -249,21 +249,7 @@ class MockConfig:
     sqlite_vss_path: Optional[str] = None
     voice_debug: bool = True
     tts_enabled: bool = False
-    tts_engine: str = "piper"  # "piper" (default) or "chatterbox"
-    tts_voice: Optional[str] = None
     tts_rate: int = 200
-    # Piper TTS settings
-    tts_piper_model_path: Optional[str] = None
-    tts_piper_speaker: Optional[int] = None
-    tts_piper_length_scale: float = 1.0
-    tts_piper_noise_scale: float = 0.667
-    tts_piper_noise_w: float = 0.8
-    tts_piper_sentence_silence: float = 0.2
-    # Chatterbox TTS settings
-    tts_chatterbox_device: str = "cpu"
-    tts_chatterbox_audio_prompt: Optional[str] = None
-    tts_chatterbox_exaggeration: float = 0.5
-    tts_chatterbox_cfg_weight: float = 0.5
     web_search_enabled: bool = True
     brave_search_api_key: str = ""
     wikipedia_fallback_enabled: bool = True

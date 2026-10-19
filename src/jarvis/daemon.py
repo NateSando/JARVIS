@@ -431,24 +431,9 @@ def main() -> None:
         print("📍 Location services disabled", flush=True)
 
     # Initialize TTS
-    print(f"🔊 Initializing TTS engine ({cfg.tts_engine})...", flush=True)
+    print("🔊 Initializing TTS engine (Kokoro)...", flush=True)
     tts = create_tts_engine(
-        engine=cfg.tts_engine,
         enabled=cfg.tts_enabled,
-        voice=cfg.tts_voice,
-        rate=cfg.tts_rate,
-        # Chatterbox parameters
-        device=cfg.tts_chatterbox_device,
-        audio_prompt_path=cfg.tts_chatterbox_audio_prompt,
-        exaggeration=cfg.tts_chatterbox_exaggeration,
-        cfg_weight=cfg.tts_chatterbox_cfg_weight,
-        # Piper parameters
-        piper_model_path=cfg.tts_piper_model_path,
-        piper_speaker=cfg.tts_piper_speaker,
-        piper_length_scale=cfg.tts_piper_length_scale,
-        piper_noise_scale=cfg.tts_piper_noise_scale,
-        piper_noise_w=cfg.tts_piper_noise_w,
-        piper_sentence_silence=cfg.tts_piper_sentence_silence,
         # Kokoro parameters
         kokoro_voice=cfg.kokoro_voice,
         kokoro_speed=cfg.kokoro_speed,
