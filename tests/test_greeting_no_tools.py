@@ -64,7 +64,7 @@ TOOL_REQUIRED_TEST_CASES = [
     pytest.param("search for python tutorials", True, id="Tool query: web search"),
     pytest.param("what's the weather in Tokyo", True, id="Tool query: weather with location"),
     pytest.param("look up the news today", True, id="Tool query: news search"),
-    pytest.param("what did I eat yesterday", True, id="Tool query: meal recall"),
+    pytest.param("how is my project structured", True, id="Tool query: code structure"),
 ]
 
 
@@ -180,15 +180,15 @@ class TestGreetingNoTools:
                     return _mock_llm_response("", [_tool_call("getWeather", {"location": "here"})])
                 elif "search" in query.lower() or "look up" in query.lower() or "news" in query.lower():
                     return _mock_llm_response("", [_tool_call("webSearch", {"search_query": query})])
-                elif "eat" in query.lower() or "meal" in query.lower():
-                    return _mock_llm_response("", [_tool_call("fetchMeals", {})])
+                elif "project" in query.lower():
+                    return _mock_llm_response("", [_tool_call("codeInspect", {"operation": "overview"})])
             return _mock_llm_response("Here's the information you requested.")
 
         with patch('jarvis.reply.engine.run_tool_with_retries', side_effect=mock_tool_run), \
              patch('jarvis.reply.engine.chat_with_messages', side_effect=mock_chat), \
              patch('jarvis.reply.engine.extract_search_params_for_memory', return_value={"keywords": []}), \
              patch('jarvis.reply.engine.select_tools',
-                   return_value=["webSearch", "getWeather", "fetchMeals", "stop"]):
+                   return_value=["webSearch", "getWeather", "codeInspect", "stop"]):
 
             response = run_reply_engine(
                 db=db, cfg=mock_config, tts=None,
@@ -249,7 +249,7 @@ class TestGreetingNoTools:
         def mock_tool_run(db, cfg, tool_name, tool_args, **kwargs):
             from jarvis.tools.types import ToolExecutionResult
             capture.record(tool_name, tool_args or {})
-            return ToolExecutionResult(success=True, reply_text="Logged: pizza")
+            return ToolExecutionResult(success=True, reply_text="Project: demo")
 
         call_count = 0
 
@@ -257,19 +257,19 @@ class TestGreetingNoTools:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                return _mock_llm_response("", [_tool_call("logMeal", {"description": "pizza"})])
-            return _mock_llm_response("Logged your meal!")
+                return _mock_llm_response("", [_tool_call("codeInspect", {"operation": "overview"})])
+            return _mock_llm_response("Here is your project overview.")
 
-        # logMeal was previously restricted to "life" profile only — now all tools are always available
+        # Tools are not restricted by profile: every tool is always available
         with patch('jarvis.reply.engine.run_tool_with_retries', side_effect=mock_tool_run), \
              patch('jarvis.reply.engine.chat_with_messages', side_effect=mock_chat), \
              patch('jarvis.reply.engine.extract_search_params_for_memory', return_value={"keywords": []}):
 
             run_reply_engine(
                 db=db, cfg=mock_config, tts=None,
-                text="log that I had pizza for lunch",
+                text="give me an overview of my project",
                 dialogue_memory=dialogue_memory,
             )
 
-        assert capture.has_any_tool(), "logMeal should always be callable"
-        assert "logMeal" in capture.tool_names()
+        assert capture.has_any_tool(), "codeInspect should always be callable"
+        assert "codeInspect" in capture.tool_names()

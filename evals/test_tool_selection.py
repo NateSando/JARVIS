@@ -33,18 +33,6 @@ TOOL_SELECTION_CASES = [
         id="location weather query selects getWeather and few others",
     ),
     pytest.param(
-        "log that I had a chicken salad for lunch",
-        ["logMeal"],
-        5,
-        id="meal logging selects logMeal and few others",
-    ),
-    pytest.param(
-        "what did I eat yesterday",
-        ["fetchMeals"],
-        5,
-        id="meal recall selects fetchMeals and few others",
-    ),
-    pytest.param(
         "search the web for Python tutorials",
         ["webSearch"],
         5,

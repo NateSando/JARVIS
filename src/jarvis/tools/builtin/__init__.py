@@ -9,9 +9,6 @@ from .screenshot import ScreenshotTool
 from .web_search import WebSearchTool
 from .local_files import LocalFilesTool
 from .fetch_web_page import FetchWebPageTool
-from .nutrition.log_meal import LogMealTool
-from .nutrition.fetch_meals import FetchMealsTool
-from .nutrition.delete_meal import DeleteMealTool
 from .weather import WeatherTool
 from .stop import StopTool
 
@@ -23,9 +20,6 @@ __all__ = [
     'WebSearchTool',
     'LocalFilesTool',
     'FetchWebPageTool',
-    'LogMealTool',
-    'FetchMealsTool',
-    'DeleteMealTool',
     'WeatherTool',
     'StopTool',
 ]

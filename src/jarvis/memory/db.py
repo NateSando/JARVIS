@@ -12,23 +12,6 @@ _SCHEMA_SQL = """
 PRAGMA journal_mode=WAL;
 PRAGMA synchronous=NORMAL;
 
--- Structured meals log (optional feature)
-CREATE TABLE IF NOT EXISTS meals (
-  id            INTEGER PRIMARY KEY,
-  ts_utc        TEXT NOT NULL,
-  source_app    TEXT NOT NULL,
-  description   TEXT NOT NULL,
-  calories_kcal REAL,
-  protein_g     REAL,
-  carbs_g       REAL,
-  fat_g         REAL,
-  fiber_g       REAL,
-  sugar_g       REAL,
-  sodium_mg     REAL,
-  potassium_mg  REAL,
-  micros_json   TEXT,
-  confidence    REAL
-);
 
 -- Conversation summaries for diary/memory system
 CREATE TABLE IF NOT EXISTS conversation_summaries (
@@ -273,69 +256,6 @@ class Database:
         import array
         arr = array.array('f', [float(x) for x in vec])
         return arr.tobytes()
-
-    # --- Meals API ---
-    def insert_meal(
-        self,
-        ts_utc: str,
-        source_app: str,
-        description: str,
-        calories_kcal: Optional[float] = None,
-        protein_g: Optional[float] = None,
-        carbs_g: Optional[float] = None,
-        fat_g: Optional[float] = None,
-        fiber_g: Optional[float] = None,
-        sugar_g: Optional[float] = None,
-        sodium_mg: Optional[float] = None,
-        potassium_mg: Optional[float] = None,
-        micros_json: Optional[str] = None,
-        confidence: Optional[float] = None,
-    ) -> int:
-        with self._lock:
-            cur = self.conn.cursor()
-            cur.execute(
-                """
-                INSERT INTO meals(ts_utc, source_app, description, calories_kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, potassium_mg, micros_json, confidence)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    ts_utc,
-                    source_app,
-                    description,
-                    calories_kcal,
-                    protein_g,
-                    carbs_g,
-                    fat_g,
-                    fiber_g,
-                    sugar_g,
-                    sodium_mg,
-                    potassium_mg,
-                    micros_json,
-                    confidence,
-                ),
-            )
-            self.conn.commit()
-            return int(cur.lastrowid)
-
-    def get_meals_between(self, ts_utc_min: str, ts_utc_max: str) -> list[sqlite3.Row]:
-        with self._lock:
-            cur = self.conn.cursor()
-            rows = cur.execute(
-                """
-                SELECT * FROM meals
-                WHERE ts_utc >= ? AND ts_utc <= ?
-                ORDER BY ts_utc ASC
-                """,
-                (ts_utc_min, ts_utc_max),
-            ).fetchall()
-            return rows
-
-    def delete_meal(self, meal_id: int) -> bool:
-        with self._lock:
-            cur = self.conn.cursor()
-            cur.execute("DELETE FROM meals WHERE id = ?", (meal_id,))
-            self.conn.commit()
-            return cur.rowcount > 0
 
     # --- Conversation Summaries API ---
     def upsert_conversation_summary(

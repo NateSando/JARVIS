@@ -62,11 +62,6 @@ Saturday: Heavy rain, 10°C, 90% rain
 Sunday: Showers, 11°C, 50% rain
 """
 
-MOCK_NUTRITION_DATA = """Today's nutrition (so far):
-- Oatmeal breakfast: 320 kcal, 12g protein
-- Chicken salad lunch: 450 kcal, 35g protein
-Total: 770 kcal, 47g protein, 65g carbs, 28g fat
-"""
 
 
 # =============================================================================
@@ -324,73 +319,6 @@ class TestToolUsage:
 # =============================================================================
 # Multi-Step Reasoning Evaluations
 # =============================================================================
-
-class TestMultiStepReasoning:
-    """
-    Tests complex scenarios requiring multiple steps.
-
-    These test the agent's ability to:
-    - Chain multiple tools
-    - Use memory context
-    - Synthesize information from multiple sources
-    """
-
-    @pytest.mark.eval
-    def test_nutrition_advice_uses_memory_and_data(self, mock_config, eval_db, eval_dialogue_memory):
-        """
-        Agent uses memory + nutrition data for personalized advice.
-
-        Scenario: User asks about eating pizza
-        Expected: Agent recalls health goals from memory AND checks today's intake
-        """
-        from jarvis.reply.engine import run_reply_engine
-
-        query = "should I order pizza tonight?"
-        # Bypass the context-aware tool router so fetchMeals is exposed to the
-        # mocked chat. Router behaviour is covered by dedicated router tests.
-        mock_config.tool_selection_strategy = "all"
-        capture = ToolCallCapture()
-        mock_tool_run = create_mock_tool_run(capture, {
-            "fetchMeals": MOCK_NUTRITION_DATA,
-        })
-
-        call_count = 0
-        def mock_chat(base_url, chat_model, messages, timeout_sec, extra_options=None, tools=None, **kwargs):
-            nonlocal call_count
-            call_count += 1
-
-            if call_count == 1:
-                # Memory enrichment has already surfaced health goals into the
-                # system prompt — the agent should go straight to fetchMeals.
-                return create_mock_llm_response("", [
-                    create_tool_call("fetchMeals", {})
-                ])
-            return create_mock_llm_response(
-                "You've had 770 kcal so far today, leaving room for pizza within your 1800 kcal target. "
-                "Given your weight loss goal, I'd suggest a thin crust with veggies - around 600 kcal for 2 slices. "
-                "You've been consistent this week, so one pizza night won't derail your progress!"
-            )
-
-        with patch('jarvis.reply.engine.run_tool_with_retries', side_effect=mock_tool_run), \
-             patch('jarvis.reply.engine.chat_with_messages', side_effect=mock_chat), \
-             patch('jarvis.reply.engine.extract_search_params_for_memory', return_value={"keywords": ["health", "diet"]}):
-
-            response = run_reply_engine(db=eval_db, cfg=mock_config, tts=None, text=query, dialogue_memory=eval_dialogue_memory)
-
-        print(f"\n📊 Multi-Step Reasoning:")
-        print(f"   Query: {query}")
-        print(f"   Tools called: {[c['name'] for c in capture.calls]}")
-        print(f"   Response: {response[:100] if response else 'None'}...")
-
-        # Enrichment surfaces the health goals; agent only needs fetchMeals.
-        tools_used = [c["name"] for c in capture.calls]
-        assert "fetchMeals" in tools_used, \
-            f"Should fetch today's meals for nutrition context. Used: {tools_used}"
-
-        # Response should reference calorie info
-        if response:
-            assert "calor" in response.lower() or "kcal" in response.lower(), \
-                "Response should mention calorie context"
 
 # =============================================================================
 # Memory Enrichment Evaluations

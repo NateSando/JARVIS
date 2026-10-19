@@ -19,47 +19,7 @@ class DummyCfg:
 
 
 class DummyDB:
-    def get_meals_between(self, since, until):
-        return []
-
-    def delete_meal(self, mid: int) -> bool:
-        return mid == 1
-
-
-@pytest.mark.unit
-def test_delete_meal_success(monkeypatch):
-    db = DummyDB()
-    cfg = DummyCfg()
-    res = run_tool_with_retries(
-        db=db,
-        cfg=cfg,
-        tool_name="deleteMeal",
-        tool_args={"id": 1},
-        system_prompt="",
-        original_prompt="",
-        redacted_text="",
-        max_retries=0,
-    )
-    assert isinstance(res, ToolExecutionResult)
-    assert res.success is True
-    assert "deleted" in (res.reply_text or "").lower()
-
-
-@pytest.mark.unit
-def test_delete_meal_failure(monkeypatch):
-    db = DummyDB()
-    cfg = DummyCfg()
-    res = run_tool_with_retries(
-        db=db,
-        cfg=cfg,
-        tool_name="deleteMeal",
-        tool_args={"id": 2},
-        system_prompt="",
-        original_prompt="",
-        redacted_text="",
-        max_retries=0,
-    )
-    assert res.success is False
+    pass
 
 
 @pytest.mark.unit

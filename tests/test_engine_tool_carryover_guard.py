@@ -210,13 +210,13 @@ def test_successful_previous_tool_does_not_trigger_carryover(
 
     with patch(
         "src.jarvis.reply.engine.select_tools",
-        return_value=["logMeal"],
+        return_value=["codeInspect"],
     ):
         run_reply_engine(db=db, cfg=cfg, tts=None,
-                         text="log my breakfast", dialogue_memory=dm)
+                         text="inspect my project", dialogue_memory=dm)
 
     tool_names = _tool_names_from_chat_call(mock_chat.call_args_list[-1])
-    assert "logMeal" in tool_names
+    assert "codeInspect" in tool_names
     assert "getWeather" not in tool_names, (
         "successful prior tool must not be carried over; "
         f"saw {sorted(tool_names)}"

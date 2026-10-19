@@ -12,9 +12,6 @@ are caught before they land. Known motivating failures:
 
   - "how's the weather this week?" → router picked [getWeather, stop] only,
     blocking the webSearch → fetchWebPage chain the mocked agent tests expect.
-  - "should I order pizza tonight?" → router picked [stop] only. fetchMeals
-    never reached the LLM, so the agent could not ground its advice in
-    today's intake.
 
 Principles locked in here:
   1. Implicit-intent queries (no tool-name keywords) must still route to the
@@ -62,16 +59,16 @@ def _real_tools(selected):
 # (query, must_include_any_of, rationale)
 IMPLICIT_INTENT_CASES = [
     pytest.param(
-        "should I order pizza tonight?",
-        ["fetchMeals"],
-        "Advisory food decision needs today's intake to answer usefully.",
-        id="food decision → fetchMeals",
+        "where did I put the payment logic in my backend?",
+        ["codeInspect"],
+        "Question about the user's own code without the word 'code'.",
+        id="own backend → codeInspect",
     ),
     pytest.param(
-        "am I under my calorie budget today?",
-        ["fetchMeals"],
-        "Budget question with no 'meal' keyword still needs the log.",
-        id="calorie budget → fetchMeals",
+        "why is everything so sluggish right now?",
+        ["systemInfo"],
+        "Machine slowness with no 'CPU' or 'memory' keyword.",
+        id="sluggish machine → systemInfo",
     ),
     pytest.param(
         "do I need a jacket today?",
@@ -86,16 +83,16 @@ IMPLICIT_INTENT_CASES = [
         id="run forecast → getWeather",
     ),
     pytest.param(
-        "what did I put in my body today?",
-        ["fetchMeals"],
-        "Colloquial meal recall, no tool-name keywords.",
-        id="meal recall (colloquial) → fetchMeals",
+        "is my disk about to fill up?",
+        ["systemInfo"],
+        "Storage worry phrased colloquially.",
+        id="disk worry → systemInfo",
     ),
     pytest.param(
-        "did I have anything with gluten earlier?",
-        ["fetchMeals"],
-        "Dietary check against logged meals.",
-        id="dietary check → fetchMeals",
+        "which framework is LexGuard built on?",
+        ["codeInspect"],
+        "Project question naming only the project.",
+        id="project stack → codeInspect",
     ),
 ]
 
@@ -141,10 +138,10 @@ class TestImplicitIntent:
 # (query, must_include_all, rationale)
 MULTI_TOOL_CASES = [
     pytest.param(
-        "plan my day around the weather and what I've eaten",
-        ["getWeather", "fetchMeals"],
+        "check the weather and whether my computer is running hot",
+        ["getWeather", "systemInfo"],
         "Two explicit subjects, two tools.",
-        id="weather + meals",
+        id="weather + system",
     ),
     pytest.param(
         "find me a detailed article about the Apollo program",

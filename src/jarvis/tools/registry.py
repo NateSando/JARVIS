@@ -15,9 +15,6 @@ from .builtin.local_files import LocalFilesTool
 from .builtin.code_access.code_inspect import CodeInspectTool
 from .builtin.code_access.system_info import SystemInfoTool
 from .builtin.fetch_web_page import FetchWebPageTool
-from .builtin.nutrition.log_meal import LogMealTool
-from .builtin.nutrition.fetch_meals import FetchMealsTool
-from .builtin.nutrition.delete_meal import DeleteMealTool
 from .builtin.refresh_mcp_tools import RefreshMCPToolsTool
 from .builtin.weather import WeatherTool
 from .builtin.stop import StopTool
@@ -36,9 +33,6 @@ BUILTIN_TOOLS = {
     "codeInspect": CodeInspectTool(),
     "systemInfo": SystemInfoTool(),
     "fetchWebPage": FetchWebPageTool(),
-    "logMeal": LogMealTool(),
-    "fetchMeals": FetchMealsTool(),
-    "deleteMeal": DeleteMealTool(),
     "refreshMCPTools": RefreshMCPToolsTool(),
     "getWeather": WeatherTool(),
     "stop": StopTool(),
