@@ -84,7 +84,6 @@ _TEMPLATE = r"""<!DOCTYPE html>
   <div class="row">
     <button class="btn" id="refresh" title="Sincroniza com o Obsidian">⟳ Atualizar</button>
     <button class="btn" id="fit" title="Enquadrar tudo">⤢ Enquadrar</button>
-    <a class="btn" href="/" title="Voltar à memória">← Memória</a>
   </div>
 </div>
 <div id="legend" class="panel collapsed"><h2 id="legend-toggle" title="Mostrar/ocultar">🎨 Áreas ▸</h2><div id="areas"></div></div>

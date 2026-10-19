@@ -1,6 +1,6 @@
 """Shared filesystem paths for the desktop app.
 
-Centralising these avoids drift between modules (app.py, updater.py, etc.)
+Centralising these avoids drift between modules (app.py and friends)
 that all need to agree on where logs and crash reports live.
 """
 

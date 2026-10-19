@@ -87,17 +87,6 @@ class StateManager:
         start_time_str = datetime.fromtimestamp(self._collect_start_time).strftime('%H:%M:%S.%f')[:-3]
         debug_log(f"collection started at {start_time_str}: '{initial_text}'", "state")
 
-        # Set face state to LISTENING
-        try:
-            from desktop_app.face_widget import get_jarvis_state, JarvisState
-            face_state_manager = get_jarvis_state()
-            face_state_manager.set_state(JarvisState.LISTENING)
-            debug_log("face state set to LISTENING (collection started)", "state")
-        except ImportError:
-            pass
-        except Exception as e:
-            debug_log(f"failed to set face state to LISTENING: {e}", "state")
-
     def add_to_collection(self, text: str) -> None:
         """
         Add text to current collection.
@@ -141,8 +130,6 @@ class StateManager:
             debug_log(f"collection cleared: '{query}' (started: {start_time_str}, ended: {end_time_str}, duration: {duration:.2f}s)", "state")
         else:
             debug_log(f"collection cleared: '{query}'", "state")
-
-        # Note: Don't set face state here - it will be set to THINKING or ASLEEP by caller
 
         return query
 
@@ -305,18 +292,6 @@ class StateManager:
             expiry_time_str = datetime.fromtimestamp(expiry_time).strftime('%H:%M:%S.%f')[:-3]
             debug_log(f"hot window expired (timer) at {expiry_time_str} after {duration:.2f}s", "state")
 
-            # Set face state to IDLE
-            try:
-                from desktop_app.face_widget import get_jarvis_state, JarvisState
-                face_state_manager = get_jarvis_state()
-                face_state_manager.set_state(JarvisState.IDLE)
-                debug_log("face state set to IDLE (hot window timer expiry)", "state")
-            except ImportError:
-                # Desktop app not available (headless mode)
-                pass
-            except Exception as e:
-                debug_log(f"failed to set face state to IDLE: {e}", "state")
-
             # Always show user-facing output
             try:
                 print("💤 Returning to wake word mode\n", flush=True)
@@ -374,17 +349,6 @@ class StateManager:
             activation_time_str = datetime.fromtimestamp(self._hot_window_start_time).strftime('%H:%M:%S.%f')[:-3]
             debug_log(f"hot window activated at {activation_time_str} for {self.hot_window_seconds}s (after {self.echo_tolerance}s echo delay)", "state")
 
-            # Set face state to LISTENING
-            try:
-                from desktop_app.face_widget import get_jarvis_state, JarvisState
-                face_state_manager = get_jarvis_state()
-                face_state_manager.set_state(JarvisState.LISTENING)
-                debug_log("face state set to LISTENING (hot window activated)", "state")
-            except ImportError:
-                pass
-            except Exception as e:
-                debug_log(f"failed to set face state to LISTENING: {e}", "state")
-
             # Always show user-facing output
             try:
                 print(f"👂 Listening for follow-up ({int(self.hot_window_seconds)}s)...", flush=True)
@@ -437,17 +401,6 @@ class StateManager:
 
             debug_log("hot window expired (poll)", "state")
 
-            # Set face state to IDLE (awake and ready, waiting for wake word)
-            try:
-                from desktop_app.face_widget import get_jarvis_state, JarvisState
-                face_state_manager = get_jarvis_state()
-                face_state_manager.set_state(JarvisState.IDLE)
-                debug_log("face state set to IDLE (hot window poll expiry)", "state")
-            except ImportError:
-                pass
-            except Exception as e:
-                debug_log(f"failed to set face state to IDLE: {e}", "state")
-
             # Always show user-facing output
             try:
                 print("💤 Returning to wake word mode\n", flush=True)
@@ -473,17 +426,6 @@ class StateManager:
                 self._hot_window_span_end = time.time()
 
             debug_log("hot window manually expired", "state")
-
-            # Set face state to IDLE (awake and ready, waiting for wake word)
-            try:
-                from desktop_app.face_widget import get_jarvis_state, JarvisState
-                face_state_manager = get_jarvis_state()
-                face_state_manager.set_state(JarvisState.IDLE)
-                debug_log("face state set to IDLE (hot window manually expired)", "state")
-            except ImportError:
-                pass
-            except Exception as e:
-                debug_log(f"failed to set face state to IDLE: {e}", "state")
 
             # Always show user-facing output
             try:

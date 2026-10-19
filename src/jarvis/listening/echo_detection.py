@@ -28,7 +28,7 @@ class EchoDetector:
         self._last_tts_finish_time: float = 0.0
         self._last_tts_text: str = ""
         self._tts_energy_baseline: float = 0.0
-        self._tts_exact_duration: Optional[float] = None  # Exact audio duration from Piper
+        self._tts_exact_duration: Optional[float] = None  # Exact audio duration from the TTS engine
         # Acceptance policy — shared threshold for any salvage decision:
         # the minimum word count required both for the overlapped prefix and
         # for the non-echo remainder we keep. 3 is low enough to admit short
@@ -50,7 +50,7 @@ class EchoDetector:
         Args:
             tts_text: Text being spoken by TTS
             baseline_energy: Current audio energy baseline
-            exact_duration: Exact audio duration in seconds (from Piper synthesis)
+            exact_duration: Exact audio duration in seconds (from TTS synthesis)
         """
         self._tts_start_time = time.time()
         self._last_tts_text = tts_text.lower().strip()
@@ -156,7 +156,7 @@ class EchoDetector:
         if not tts_words:
             return False
 
-        # Use exact duration from Piper if available, otherwise estimate from WPM
+        # Use exact duration from the TTS engine if available, otherwise estimate from WPM
         if self._tts_exact_duration and self._tts_exact_duration > 0:
             words_per_sec = len(tts_words) / self._tts_exact_duration
         else:
@@ -231,7 +231,7 @@ class EchoDetector:
         # Phase 1: Try timing-based segment first (faster for typical cases)
         time_offset = utterance_start_time - self._tts_start_time
         time_offset_with_tolerance = max(0, time_offset - self.echo_tolerance)
-        # Use exact duration from Piper if available, otherwise estimate from WPM
+        # Use exact duration from the TTS engine if available, otherwise estimate from WPM
         if self._tts_exact_duration and self._tts_exact_duration > 0:
             words_per_sec = len(tts_words) / self._tts_exact_duration
         else:

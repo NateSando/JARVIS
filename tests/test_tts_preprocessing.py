@@ -115,7 +115,7 @@ class TestPreprocessForSpeech:
 class TestStripMarkdownForSpeech:
     """Tests that markdown formatting is stripped before TTS reads the text aloud.
 
-    Piper and similar TTS engines read literal characters — "**bold**" becomes
+    TTS engines read literal characters — "**bold**" becomes
     "asterisk asterisk bold asterisk asterisk" if the markers aren't stripped.
     """
 

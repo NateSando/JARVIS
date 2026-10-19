@@ -75,7 +75,7 @@ def _strip_markdown_for_speech(text: str) -> str:
     """Strip markdown formatting so TTS doesn't read syntax characters aloud.
 
     Small models often produce markdown (``**bold**``, bullet lists, headings)
-    even when told to be conversational. Piper and similar engines read the
+    even when told to be conversational. TTS engines read the
     syntax characters literally ("asterisk asterisk bold asterisk asterisk").
     This function removes the markup while preserving the words inside it.
 

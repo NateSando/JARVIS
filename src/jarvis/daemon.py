@@ -45,7 +45,6 @@ _global_dialogue_memory: Optional[DialogueMemory] = None
 _global_stop_requested: bool = False
 _warm_profile_graph_listener = None  # registered callback, kept for shutdown unregister
 _brain_graph_listener = None  # Obsidian brain re-sync callback, kept for shutdown unregister
-_global_tts_engine = None  # TTS engine reference for face animation polling
 
 # Shutdown timeout for diary update (shorter than normal to allow reasonable quit time)
 # Desktop app's stop_daemon() should wait at least this long + buffer
@@ -135,11 +134,6 @@ def _emit_diary_event(event_type: str, data) -> None:
 def is_stop_requested() -> bool:
     """Check if a stop has been requested."""
     return _global_stop_requested
-
-
-def get_tts_engine():
-    """Get the global TTS engine for speaking state polling (used by face widget)."""
-    return _global_tts_engine
 
 
 def _install_signal_handlers() -> None:
@@ -297,7 +291,7 @@ def _check_and_update_diary(
 
 def main() -> None:
     """Main daemon entry point."""
-    global _global_dialogue_memory, _global_stop_requested, _global_tts_engine
+    global _global_dialogue_memory, _global_stop_requested
     global _warm_profile_graph_listener, _brain_graph_listener
 
     # Reset stop flag at start (in case of restart)
@@ -442,7 +436,6 @@ def main() -> None:
         kokoro_voices_path=cfg.kokoro_voices_path,
         kokoro_robot_effect=cfg.kokoro_robot_effect,
     )
-    _global_tts_engine = tts  # Expose for face widget speaking animation
     if tts.enabled:
         tts.start()
         print("✓ TTS engine started", flush=True)

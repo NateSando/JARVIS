@@ -1,4 +1,4 @@
-"""Tests for the brain (cérebro) endpoints served by the memory viewer."""
+"""Tests for the brain (cérebro) server: the only web page the desktop app serves."""
 
 from __future__ import annotations
 
@@ -21,14 +21,14 @@ from jarvis.memory.graph import GraphMemoryStore
 class TestBrainEndpoints:
     @pytest.fixture(autouse=True)
     def setup_app(self, tmp_path, monkeypatch):
-        from desktop_app import memory_viewer
+        from desktop_app import brain_server
 
         self.store = GraphMemoryStore(str(tmp_path / "mem.db"))
         self.vault_path = tmp_path / "vault"
         self.enabled = True
-        monkeypatch.setattr(memory_viewer, "_graph_store", self.store)
+        monkeypatch.setattr(brain_server, "_graph_store", self.store)
         monkeypatch.setattr(
-            memory_viewer,
+            brain_server,
             "load_settings",
             lambda: SimpleNamespace(
                 obsidian_enabled=self.enabled,
@@ -36,8 +36,8 @@ class TestBrainEndpoints:
                 db_path=str(tmp_path / "mem.db"),
             ),
         )
-        memory_viewer.app.config["TESTING"] = True
-        self.client = memory_viewer.app.test_client()
+        brain_server.app.config["TESTING"] = True
+        self.client = brain_server.app.test_client()
         yield
         self.store.close()
 
@@ -69,3 +69,20 @@ class TestBrainEndpoints:
         assert "/api/cerebro" in html
         # No external scripts: the brain must work without internet access
         assert "<script src=" not in html
+
+    def test_root_opens_the_brain(self):
+        resp = self.client.get("/")
+        assert resp.status_code in (301, 302)
+        assert resp.headers["Location"].endswith("/cerebro")
+
+    def test_server_starts_and_stops_on_a_free_port(self):
+        from urllib.request import urlopen
+        from desktop_app import brain_server
+
+        server = brain_server.BrainServer(port=0)
+        server.start()
+        try:
+            with urlopen(f"http://127.0.0.1:{server.port}/cerebro", timeout=5) as resp:
+                assert resp.status == 200
+        finally:
+            server.stop()

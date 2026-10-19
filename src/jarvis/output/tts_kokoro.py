@@ -1,8 +1,7 @@
 """Kokoro TTS engine for the daemon: streaming, interruptible, robot-coloured.
 
-Same interface as ``PiperTTS`` in ``tts.py`` (start/stop/speak/interrupt,
-completion + duration callbacks, loopback-guard helpers) so the listener and
-face widget treat it like any other engine.
+Standard engine interface (start/stop/speak/interrupt, completion +
+duration callbacks, loopback-guard helpers) used by the voice listener.
 
 Latency: the reply is split into chunks (short first chunk, then sentence
 groups). A producer thread synthesises chunk N+1 while chunk N plays, so the
@@ -124,7 +123,6 @@ class KokoroTTSEngine:
         self._should_interrupt.clear()
         self._is_speaking.set()
         self._last_spoken_text = text
-        self._notify_speaking_state()
         interrupted = False
 
         chunks = split_for_speech(text)
@@ -188,16 +186,6 @@ class KokoroTTSEngine:
                 except Exception as e:
                     print(f"  ⚠️ Kokoro TTS completion callback error: {e}", flush=True)
             self._completion_callback = None
-
-    def _notify_speaking_state(self) -> None:
-        """Tell the face widget we are speaking (no-op when the desktop app is absent)."""
-        try:
-            from desktop_app.face_widget import get_jarvis_state, JarvisState
-            get_jarvis_state().set_state(JarvisState.SPEAKING)
-        except ImportError:
-            pass
-        except Exception as e:
-            debug_log(f"failed to set face state to SPEAKING (kokoro): {e}", "tts")
 
     # Loopback guard helpers (same interface as the other engines)
     def is_speaking(self) -> bool:
