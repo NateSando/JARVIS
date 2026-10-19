@@ -1246,6 +1246,16 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
                             node_annotations.append((node.name or path.split(" > ")[-1], matched_q))
                             debug_log(f"graph hit: [{path}] ({node.data_token_count} tokens)", "memory")
 
+                    # The user's Obsidian notes are part of the same memory:
+                    # same content words, same digest downstream.
+                    if getattr(cfg, "obsidian_enabled", False):
+                        from ..brain import vault_enrichment_parts
+                        for part in vault_enrichment_parts(cfg.obsidian_vault_path, question_words):
+                            graph_parts.append(part)
+                            title = part[len("[Obsidian › "):part.index("]")]
+                            node_annotations.append((f"Obsidian › {title}", _match_question(part, questions)))
+                            debug_log(f"obsidian hit: {title}", "memory")
+
                 if graph_parts:
                     raw_graph_parts = list(graph_parts)
                     graph_context = (

@@ -250,6 +250,10 @@ A Flask-based web interface for browsing conversation history:
 - **Development mode**: Flask runs as subprocess
 - Opens in embedded QWebEngineView or system browser (macOS fallback)
 
+### Brain (Cérebro)
+
+The tray's "🧠 Cérebro" action opens a second `MemoryViewerWindow` pointed at `/cerebro` on the same server (whichever window starts first owns the server; the other detects the open port). The page renders the Obsidian vault as a live force-directed graph; the Memory Viewer header links to it too. Data contract and behaviour live in `src/jarvis/brain/brain.spec.md`.
+
 ## Error Handling
 
 ### Crash Detection

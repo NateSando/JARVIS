@@ -338,6 +338,85 @@ class TestGraphContextReachesSystemMessage:
             f"Graph node data missing from system prompt. Got:\n{joined[:500]}"
 
 
+class TestObsidianNotesReachSystemMessage:
+    """The user's Obsidian notes are recalled alongside the knowledge graph."""
+
+    def _run(self, tmp_path, obsidian_enabled: bool):
+        from jarvis.reply.engine import run_reply_engine
+        from jarvis.brain.vault import ObsidianVault
+
+        vault = ObsidianVault(tmp_path / "vault")
+        vault.write_note("Culinária.md", "- cozinha ramen picante aos domingos\n- cuisine favourite is Japanese")
+
+        class _FakeStore:
+            def __init__(self, *a, **kw):
+                pass
+
+            def search_nodes(self, query, limit=5):
+                return []
+
+            def get_ancestors(self, node_id):
+                return []
+
+        class _DM:
+            def has_recent_messages(self):
+                return False
+
+            def get_recent_messages(self):
+                return []
+
+            def add_message(self, role, content):
+                pass
+
+        cfg = SimpleNamespace(
+            ollama_base_url="http://x",
+            ollama_chat_model="m",
+            ollama_embed_model="e",
+            llm_tools_timeout_sec=0.1,
+            llm_embed_timeout_sec=0.1,
+            llm_chat_timeout_sec=0.1,
+            agentic_max_turns=1,
+            active_profiles=["developer"],
+            voice_debug=False,
+            memory_enrichment_source="all",
+            memory_enrichment_max_results=0,
+            mcps={},
+            location_enabled=False,
+            location_auto_detect=False,
+            location_ip_address=None,
+            location_cgnat_resolve_public_ip=True,
+            db_path=":memory:",
+            tts_engine="kokoro",
+            obsidian_enabled=obsidian_enabled,
+            obsidian_vault_path=str(vault.root),
+        )
+
+        captured: list = []
+
+        def fake_chat(**kwargs):
+            captured.extend(kwargs.get("messages", []))
+            return {"message": {"content": "ok", "role": "assistant"}}
+
+        with patch(
+            "jarvis.reply.engine.extract_search_params_for_memory",
+            return_value={"keywords": ["food"], "questions": ["what cuisine does the user enjoy?"]},
+        ), patch("jarvis.memory.graph.GraphMemoryStore", _FakeStore), \
+             patch("jarvis.reply.engine.chat_with_messages", side_effect=fake_chat), \
+             patch("jarvis.tools.selection.select_tools", return_value=[]):
+            run_reply_engine(db=None, cfg=cfg, tts=None, text="what do I like to eat?", dialogue_memory=_DM())
+
+        return "\n".join(m.get("content", "") for m in captured if m.get("role") == "system")
+
+    def test_matching_note_is_injected(self, tmp_path):
+        joined = self._run(tmp_path, obsidian_enabled=True)
+        assert "[Obsidian › Culinária]" in joined
+        assert "ramen" in joined
+
+    def test_disabled_vault_is_ignored(self, tmp_path):
+        joined = self._run(tmp_path, obsidian_enabled=False)
+        assert "Obsidian" not in joined
+
+
 # ── Memory digest ──────────────────────────────────────────────────────
 
 

@@ -167,6 +167,8 @@ Jarvis starts listening automatically — just say "Jarvis" and talk!
 - **Smart Tool Selection** - Embedding-based relevance filtering picks only the tools needed per query — add unlimited MCP tools without performance degradation
 - **Built-in Tools** - Screenshot OCR, web search (DuckDuckGo → Brave → Wikipedia fallback chain with auto-fetch), weather, file access, nutrition tracking, location awareness, plus a tool-discovery escape hatch the agent uses to widen its own toolset mid-reply
 - **Knowledge Graph Memory** - Self-organising memory that learns from conversations, auto-splits by topic, and surfaces relevant knowledge automatically
+- **Obsidian Brain** - Everything Jarvis learns is mirrored into an Obsidian vault as linked notes, alongside a skill map. Open "🧠 Cérebro" from the tray for a living graph of what you know (hover any node to see every point it holds), and point it at your own vault so your notes become part of Jarvis's memory
+- **J.A.R.V.I.S. Voice** - Kokoro TTS on CPU with a male, subtly robotic voice that speaks Portuguese (and other languages) and starts talking after the first sentence
 - **Natural Voice** - Say "Jarvis" anywhere in your sentence, interrupt with "stop", follow up without repeating the wake word
 - **Dictation Mode** - Free, offline alternative to WisprFlow — hold a hotkey, speak, release to paste text into any app
 - **MCP Integration** - Connect to thousands of external tools (Home Assistant, GitHub, Slack, etc.)
@@ -311,10 +313,26 @@ Customise the hotkey in Settings or `config.json`:
 <details>
 <summary><strong>Text-to-Speech</strong></summary>
 
-**Piper TTS (default)** - Neural TTS that auto-downloads on first use (~60MB):
-- Works out of the box - no setup required
-- High-quality British English male voice (en_GB-alan-medium)
-- Fast local synthesis with exact duration tracking
+**Kokoro (default)** - Multilingual CPU TTS with the J.A.R.V.I.S. voice. Auto-downloads on first use (~120MB):
+- Male Brazilian Portuguese voice with a British butler tint (`pm_alex:0.7,bm_george:0.3`)
+- Subtle metallic, robotic colouring, adjustable from natural (`0.0`) to fully synthetic (`1.0`)
+- Streams sentence by sentence, so speech starts before the whole reply is synthesised
+
+```json
+{
+  "kokoro_voice": "pm_alex:0.7,bm_george:0.3",
+  "kokoro_lang": "pt-br",
+  "kokoro_robot_effect": 0.35,
+  "kokoro_speed": 1.0
+}
+```
+
+`kokoro_voice` takes one voice (`"bm_george"`) or a weighted blend. Run `python -m jarvis.voice.cli --list-voices` from `src/` to see them all.
+
+**Piper** - English-only neural TTS (~60MB, British male voice):
+```json
+{ "tts_engine": "piper" }
+```
 
 To use different Piper voices, download from [HuggingFace](https://huggingface.co/rhasspy/piper-voices) and set:
 ```json
@@ -335,6 +353,25 @@ Voice cloning with Chatterbox - add a 3-10 second .wav sample:
   "tts_chatterbox_audio_prompt": "/path/to/voice.wav"
 }
 ```
+
+</details>
+
+<details>
+<summary><strong>Obsidian Brain</strong></summary>
+
+Jarvis keeps an Obsidian vault in step with what it knows (default `~/Obsidian/JARVIS`, created on first start):
+- `JARVIS/Cérebro.md` is the hub, `JARVIS/Habilidades/` holds one note per skill area (seeded from the system prompt, then yours to edit), and `JARVIS/Memória/` mirrors the knowledge graph.
+- Open the folder as a vault in Obsidian to use its graph view, or open "🧠 Cérebro" from the tray (also linked from the Memory Viewer).
+- Point it at your existing vault to make your own notes part of the brain and of Jarvis's recall. Jarvis only ever rewrites files it created.
+
+```json
+{
+  "obsidian_enabled": true,
+  "obsidian_vault_path": "~/Obsidian/JARVIS"
+}
+```
+
+Everything stays in local files. No Obsidian Sync or plugins are needed.
 
 </details>
 
@@ -537,7 +574,7 @@ pwsh -ExecutionPolicy Bypass -File scripts\run_windows.ps1
 bash scripts/run_linux.sh
 ```
 
-Running from source enables Chatterbox TTS (AI voice with emotion/cloning). Piper TTS works in both bundled and source modes.
+Running from source enables Chatterbox TTS (AI voice with emotion/cloning). Kokoro and Piper work in both bundled and source modes.
 
 </details>
 
@@ -585,7 +622,7 @@ provider can't run out the voice-assistant latency budget.
 
 - **100% offline** - No cloud services required
 - **Auto-redaction** - Emails, tokens, passwords automatically removed
-- **Local storage** - Everything in `~/.local/share/jarvis`
+- **Local storage** - Everything in `~/.local/share/jarvis`, plus the Obsidian vault folder you choose
 
 ## License
 

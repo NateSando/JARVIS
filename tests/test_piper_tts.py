@@ -325,12 +325,14 @@ class TestPiperTTSFactory:
         assert tts.noise_w == 0.6
         assert tts.sentence_silence == 0.25
 
-    def test_default_engine_is_piper(self):
-        """create_tts_engine should default to Piper TTS."""
-        from src.jarvis.output.tts import create_tts_engine, PiperTTS
+    def test_default_engine_matches_config_default(self):
+        """create_tts_engine() and the config default pick the same engine."""
+        from src.jarvis.config import get_default_config
+        from src.jarvis.output.tts import create_tts_engine
 
-        tts = create_tts_engine(enabled=False)
-        assert isinstance(tts, PiperTTS)
+        default = create_tts_engine(enabled=False)
+        explicit = create_tts_engine(engine=get_default_config()["tts_engine"], enabled=False)
+        assert type(default) is type(explicit)
 
     def test_unknown_engine_falls_back_to_piper(self):
         """create_tts_engine with unknown engine should create PiperTTS."""
@@ -437,19 +439,14 @@ class TestPiperTTSConfig:
         assert "tts_piper_sentence_silence" in defaults
         assert defaults["tts_piper_sentence_silence"] == 0.2
 
-    def test_tts_engine_defaults_to_piper(self):
-        """tts_engine should default to 'piper'."""
+    def test_tts_engine_defaults_to_config_default(self):
+        """An empty config uses the default tts_engine."""
         from src.jarvis.config import load_settings, get_default_config
         from unittest.mock import patch
 
-        # Check default config
-        defaults = get_default_config()
-        assert defaults["tts_engine"] == "piper"
-
-        # Mock empty config file - should use default
         with patch("src.jarvis.config._load_json", return_value={}):
             settings = load_settings()
-            assert settings.tts_engine == "piper"
+            assert settings.tts_engine == get_default_config()["tts_engine"]
 
     def test_tts_engine_migrates_system_to_piper(self):
         """tts_engine 'system' should be auto-migrated to 'piper' for existing users."""
@@ -465,9 +462,9 @@ class TestPiperTTSConfig:
                 # Should be migrated to piper
                 assert settings.tts_engine == "piper"
 
-    def test_invalid_engine_falls_back_to_piper(self):
-        """Invalid tts_engine values should fall back to piper."""
-        from src.jarvis.config import load_settings
+    def test_invalid_engine_falls_back_to_default(self):
+        """Invalid tts_engine values should fall back to the default engine."""
+        from src.jarvis.config import load_settings, get_default_config
         from unittest.mock import patch
 
         # Config with invalid TTS engine
@@ -478,8 +475,7 @@ class TestPiperTTSConfig:
 
         with patch("src.jarvis.config._load_json", return_value=config_data):
             settings = load_settings()
-            # Should fall back to piper
-            assert settings.tts_engine == "piper"
+            assert settings.tts_engine == get_default_config()["tts_engine"]
 
     def test_chatterbox_engine_preserved(self):
         """tts_engine 'chatterbox' should be preserved."""

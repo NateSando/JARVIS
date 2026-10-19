@@ -45,6 +45,7 @@ from .utils.location import get_location_context, is_location_available
 _global_dialogue_memory: Optional[DialogueMemory] = None
 _global_stop_requested: bool = False
 _warm_profile_graph_listener = None  # registered callback, kept for shutdown unregister
+_brain_graph_listener = None  # Obsidian brain re-sync callback, kept for shutdown unregister
 _global_tts_engine = None  # TTS engine reference for face animation polling
 _global_dictation_engine = None  # Dictation engine reference for history UI
 
@@ -304,7 +305,7 @@ def _check_and_update_diary(
 def main() -> None:
     """Main daemon entry point."""
     global _global_dialogue_memory, _global_stop_requested, _global_tts_engine, _global_dictation_engine
-    global _warm_profile_graph_listener
+    global _warm_profile_graph_listener, _brain_graph_listener
 
     # Reset stop flag at start (in case of restart)
     _global_stop_requested = False
@@ -425,6 +426,26 @@ def main() -> None:
         _graph_store_boot.close()
     except Exception as e:
         debug_log(f"graph legacy-shape migration failed (non-fatal): {e}", "memory")
+
+    # Obsidian brain: seed the skill map, mirror the knowledge graph into the
+    # vault in the background, and re-mirror (debounced) on every graph write.
+    if getattr(cfg, "obsidian_enabled", False):
+        try:
+            from .brain.sync import BrainSyncer
+            from .memory.graph import register_graph_mutation_listener, unregister_graph_mutation_listener
+            from .system_prompt import build_system_prompt
+
+            if _brain_graph_listener is not None:
+                unregister_graph_mutation_listener(_brain_graph_listener)
+            _brain_syncer = BrainSyncer(cfg.obsidian_vault_path, cfg.db_path, build_system_prompt())
+            _brain_syncer.start()
+            register_graph_mutation_listener(_brain_syncer.on_graph_mutation)
+            _brain_graph_listener = _brain_syncer.on_graph_mutation
+            print(f"🟣 Obsidian brain: {cfg.obsidian_vault_path}", flush=True)
+            print("   🧠 Open this folder as a vault in Obsidian to explore the graph", flush=True)
+        except Exception as e:
+            debug_log(f"obsidian brain wiring failed (non-fatal): {e}", "brain")
+            print(f"  ⚠️ Obsidian brain unavailable: {e}", flush=True)
 
     # Check location detection status
     if cfg.location_enabled:
@@ -661,6 +682,13 @@ def main() -> None:
             except Exception:
                 pass
             _warm_profile_graph_listener = None
+        if _brain_graph_listener is not None:
+            try:
+                from .memory.graph import unregister_graph_mutation_listener
+                unregister_graph_mutation_listener(_brain_graph_listener)
+            except Exception:
+                pass
+            _brain_graph_listener = None
 
         debug_log("daemon stopped", "jarvis")
         print("👋 Daemon stopped", flush=True)

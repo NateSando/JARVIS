@@ -930,9 +930,10 @@ class MemoryViewerWindow(QMainWindow):
 
     MEMORY_VIEWER_PORT = 5050
 
-    def __init__(self):
+    def __init__(self, path: str = "/", title: str = "🧠 Jarvis Memory"):
         super().__init__()
-        self.setWindowTitle("🧠 Jarvis Memory")
+        self.page_path = path
+        self.setWindowTitle(title)
         self.setGeometry(150, 150, 1200, 900)
 
         # Apply theme
@@ -1217,11 +1218,11 @@ class MemoryViewerWindow(QMainWindow):
             if self.start_server():
                 if self.web_view:
                     # Set URL and load (URL is set here, not in __init__, to avoid WebEngine crash)
-                    self.web_view.setUrl(QUrl(f"http://localhost:{self.MEMORY_VIEWER_PORT}"))
+                    self.web_view.setUrl(QUrl(f"http://localhost:{self.MEMORY_VIEWER_PORT}{self.page_path}"))
                 else:
                     # Open in system browser as fallback
                     import webbrowser
-                    webbrowser.open(f"http://localhost:{self.MEMORY_VIEWER_PORT}")
+                    webbrowser.open(f"http://localhost:{self.MEMORY_VIEWER_PORT}{self.page_path}")
             else:
                 # Server failed to start - show error message
                 debug_log("memory viewer server failed to start", "desktop")
@@ -1266,6 +1267,9 @@ class JarvisSystemTray:
 
         # Create memory viewer window (hidden by default)
         self.memory_viewer = MemoryViewerWindow()
+
+        # Brain window: the Obsidian vault as a living graph (same server)
+        self.brain_window = MemoryViewerWindow(path="/cerebro", title="🧠 Cérebro do J.A.R.V.I.S.")
 
         # Create face window (hidden by default)
         # Note: Creating the face window also initializes the SpeakingState singleton
@@ -1333,6 +1337,8 @@ class JarvisSystemTray:
         # Stop memory viewer server
         if hasattr(self, 'memory_viewer'):
             self.memory_viewer.stop_server()
+        if hasattr(self, 'brain_window'):
+            self.brain_window.stop_server()
         # Safety net: if daemon process exists but is_listening was False, still clean up
         # (This shouldn't happen in normal operation, but handles edge cases)
         if self.daemon_process:
@@ -1367,6 +1373,11 @@ class JarvisSystemTray:
         self.memory_action = QAction("🧠 Memory Viewer")
         self.memory_action.triggered.connect(self.show_memory_viewer)
         self.menu.addAction(self.memory_action)
+
+        # Brain (Obsidian graph) action
+        self.brain_action = QAction("🧠 Cérebro")
+        self.brain_action.triggered.connect(self.show_brain)
+        self.menu.addAction(self.brain_action)
 
         # Dictation history action
         self.dictation_history_action = QAction("🎙️ Dictation History")
@@ -1617,6 +1628,12 @@ class JarvisSystemTray:
         self.memory_viewer.show()
         self.memory_viewer.raise_()
         self.memory_viewer.activateWindow()
+
+    def show_brain(self) -> None:
+        """Show the brain (Obsidian graph) window and bring it to front."""
+        self.brain_window.show()
+        self.brain_window.raise_()
+        self.brain_window.activateWindow()
 
     def show_dictation_history(self) -> None:
         """Show the dictation history window and bring it to front."""

@@ -47,6 +47,15 @@ try:
 except ImportError:
     print("Warning: piper not installed, TTS may not work in bundle")
 
+# Kokoro TTS: kokoro_onnx ships config.json; espeakng_loader ships the
+# espeak-ng shared library + phoneme data used for multilingual phonemisation
+# (collected as data files so espeakng_loader finds them next to its module).
+for _pkg in ('kokoro_onnx', 'espeakng_loader', 'language_tags', 'phonemizer'):
+    try:
+        datas += collect_data_files(_pkg, include_py_files=False)
+    except Exception as e:
+        print(f"Warning: could not collect {_pkg} data: {e}")
+
 # Bundle tzdata on Windows so zoneinfo can resolve IANA zones (Windows has no
 # system zoneinfo database). macOS/Linux read /usr/share/zoneinfo at runtime
 # and do not need the pip package.
@@ -121,6 +130,20 @@ hiddenimports = [
     'jarvis.output',
     'jarvis.output.tts',
     'jarvis.output.tune_player',
+    'jarvis.output.tts_kokoro',
+    'jarvis.output.voice_fx',
+    'jarvis.voice',
+    'jarvis.voice.tts_kokoro',
+    # Kokoro TTS (default engine)
+    'kokoro_onnx',
+    'espeakng_loader',
+    'phonemizer',
+    # Obsidian brain
+    'jarvis.brain',
+    'jarvis.brain.vault',
+    'jarvis.brain.sync',
+    'jarvis.brain.brain_map',
+    'desktop_app.brain_page',
     # Piper TTS (local neural TTS)
     'piper',
     'piper.voice',

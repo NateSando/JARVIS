@@ -846,6 +846,40 @@ def diary_optimise_topics() -> Response:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Brain (Obsidian vault as a living graph)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/cerebro")
+def brain_data() -> Response:
+    """Sync the vault (idempotent) and return the brain map for the canvas."""
+    try:
+        settings = load_settings()
+        if not getattr(settings, "obsidian_enabled", False):
+            return jsonify({"enabled": False, "nodes": [], "links": [], "areas": []})
+        from jarvis.brain import get_vault
+        from jarvis.brain.brain_map import build_brain_map
+        from jarvis.brain.sync import sync_brain
+        from jarvis.system_prompt import build_system_prompt
+
+        vault = get_vault(settings.obsidian_vault_path)
+        sync_brain(vault, get_graph_store(), build_system_prompt())
+        data = build_brain_map(vault)
+        data.update(enabled=True, vault=str(vault.root))
+        debug_log(f"brain map served: {len(data['nodes'])} nodes, {len(data['links'])} links", "brain")
+        return jsonify(data)
+    except Exception as e:
+        debug_log(f"brain map failed: {e}", "brain")
+        return jsonify({"enabled": True, "error": str(e), "nodes": [], "links": [], "areas": []}), 500
+
+
+@app.route("/cerebro")
+def brain_page() -> str:
+    """Serve the brain view."""
+    from desktop_app.brain_page import render_brain_page
+    return render_brain_page()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Frontend
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1350,6 +1384,8 @@ def index() -> str:
             display: flex;
             gap: 0.5rem;
         }
+
+        .tab-link { text-decoration: none; margin-left: auto; }
 
         .tab {
             padding: 0.6rem 1.25rem;
@@ -2092,6 +2128,9 @@ def index() -> str:
             <button class="tab" data-tab="meals">
                 <span>🍽️</span> Meals
             </button>
+            <a class="tab tab-link" href="/cerebro" title="Obsidian brain">
+                <span>🟣</span> Cérebro
+            </a>
         </div>
 
         <div class="tab-content">
@@ -2218,7 +2257,7 @@ def index() -> str:
         const graphContent = document.getElementById('graph-content');
         const memoriesContent = memoriesPane.querySelector('.memory-list');
         const mealsContent = mealsPane.querySelector('.memory-list');
-        const tabs = document.querySelectorAll('.tab');
+        const tabs = document.querySelectorAll('.tab[data-tab]');
 
         // Shared utilities
         function escapeHtml(str) {
