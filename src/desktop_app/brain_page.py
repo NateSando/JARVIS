@@ -27,10 +27,10 @@ _TEMPLATE = r"""<!DOCTYPE html>
     --accent-2: __accent_secondary__;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+  html, body { margin: 0; height: 100%; overflow: hidden; background: __graph_bg__; color: var(--text);
     font-family: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif; }
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab;
-    background: radial-gradient(ellipse at center, #11131b 0%, var(--bg) 75%); }
+    background: __graph_bg__; }
   canvas.dragging { cursor: grabbing; }
   canvas.on-node { cursor: pointer; }
   .panel { position: fixed; background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
@@ -87,15 +87,19 @@ _TEMPLATE = r"""<!DOCTYPE html>
     <a class="btn" href="/" title="Voltar à memória">← Memória</a>
   </div>
 </div>
-<div id="legend" class="panel"><h2 id="legend-toggle" title="Mostrar/ocultar">🎨 Áreas ▾</h2><div id="areas"></div></div>
+<div id="legend" class="panel collapsed"><h2 id="legend-toggle" title="Mostrar/ocultar">🎨 Áreas ▸</h2><div id="areas"></div></div>
 <div id="card" class="panel"></div>
 
 <script>
 (() => {
   "use strict";
   const KIND = { hub: "🧠 Núcleo", area: "🎯 Habilidade", memory: "💾 Memória aprendida", note: "📝 Nota do Obsidian", concept: "✨ Conceito" };
-  const BASE_R = { hub: 15, area: 10, memory: 5.5, note: 5, concept: 3.2 };
+  const BASE_R = { hub: 7, area: 5.5, memory: 3.6, note: 3.4, concept: 2.6 };
   const HUB_COLOUR = "__accent_primary__";
+  // Concepts (link targets without their own note) stay neutral grey, like
+  // Obsidian's unresolved nodes; everything with a note takes its area colour.
+  const MUTED = "__graph_node__";
+  const LINK = "__graph_link__";
 
   const canvas = document.getElementById("c");
   const ctx = canvas.getContext("2d");
@@ -109,14 +113,13 @@ _TEMPLATE = r"""<!DOCTYPE html>
   let hover = null, pinned = null, dragNode = null, panning = null, moved = false;
   let query = "", matches = null;
   let alpha = 1, autoFit = false, breathe = true, dirty = true;
-  const MAX_LABELS = 220;
-  let labelOrder = [];
+  const MAX_LABELS = 60;
   const ALPHA_MIN = 0.015, ALPHA_DECAY = 0.985;
-  const CELL = 70, CUT2 = CELL * CELL * 2.25;
+  const CELL = 70, CUT2 = CELL * CELL * 2.25, GRAVITY = 0.02;
   let grid = new Map();
 
   // ── Helpers ────────────────────────────────────────────────────────────
-  const fold = s => (s || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const fold = s => (s || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   // Curated, mutually distinct hues (amber is reserved for the hub); golden-angle beyond that.
   const PALETTE = ["#60a5fa", "#f472b6", "#34d399", "#a78bfa", "#f87171", "#22d3ee", "#a3e635",
                    "#e879f9", "#2dd4bf", "#818cf8", "#fb7185", "#facc15", "#38bdf8", "#c084fc", "#4ade80"];
@@ -126,7 +129,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
   }
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function visible(n) { return !hiddenAreas.has(n.area); }
-  function radius(n) { return BASE_R[n.kind] + Math.min(9, Math.sqrt(n.degree) * 1.15); }
+  function radius(n) { return BASE_R[n.kind] + Math.min(7, Math.sqrt(n.degree) * 0.9); }
 
   // ── Data ───────────────────────────────────────────────────────────────
   async function load() {
@@ -158,35 +161,27 @@ _TEMPLATE = r"""<!DOCTYPE html>
     const others = areas.filter(a => a.name !== hubArea);
     areaColour = new Map(others.map((a, i) => [a.name, colourFor(i)]));
     if (hubArea) areaColour.set(hubArea, HUB_COLOUR);
-    const anchors = new Map();
-    const R = 120 + Math.sqrt(data.nodes.length) * 22;
-    areas.forEach((a, i) => {
-      const t = (i / Math.max(1, areas.length)) * Math.PI * 2;
-      const spread = 30 + Math.sqrt(a.count) * 22;
-      anchors.set(a.name, { x: Math.cos(t) * (R + spread * .5), y: Math.sin(t) * (R + spread * .5), spread });
-    });
+    // Everything spawns in one disc: central gravity + local repulsion then
+    // settle it into the round, evenly filled "brain" of Obsidian's graph view.
+    const spawnR = 16 * Math.sqrt(data.nodes.length);
     byId = new Map();
     nodes = data.nodes.map(d => {
       const prev = old.get(d.id);
-      const a = anchors.get(d.area) || { x: 0, y: 0, spread: 80 };
-      // Spawn inside a disc sized to the area so dense areas don't start in a pile.
-      const ang = Math.random() * Math.PI * 2, rad = Math.sqrt(Math.random()) * a.spread;
+      const ang = Math.random() * Math.PI * 2, rad = Math.sqrt(Math.random()) * spawnR;
       const n = Object.assign({}, d, {
-        x: prev ? prev.x : a.x + Math.cos(ang) * rad,
-        y: prev ? prev.y : a.y + Math.sin(ang) * rad,
+        x: prev ? prev.x : Math.cos(ang) * rad,
+        y: prev ? prev.y : Math.sin(ang) * rad,
         vx: 0, vy: 0, fx: null, fy: null,
         phase: Math.random() * Math.PI * 2,
       });
       if (n.kind === "hub" && !prev) { n.x = 0; n.y = 0; }
       n.r = radius(n);
-      n.colour = n.kind === "hub" ? HUB_COLOUR : (areaColour.get(n.area) || "#a1a1aa");
+      n.colour = n.kind === "hub" ? HUB_COLOUR : n.kind === "concept" ? MUTED : (areaColour.get(n.area) || MUTED);
       n.fold = fold(n.label + " " + n.points.join(" "));
       byId.set(n.id, n);
       return n;
     });
     byLabel = new Map(nodes.map(n => [n.label, n]));
-    const rank = { hub: 0, area: 1, memory: 2, note: 3, concept: 3 };
-    labelOrder = [...nodes].sort((a, b) => rank[a.kind] - rank[b.kind] || b.degree - a.degree);
     breathe = nodes.length <= 1500;
     links = data.links.map(l => ({ s: byId.get(l.source), t: byId.get(l.target) })).filter(l => l.s && l.t);
     neighbours = new Map(nodes.map(n => [n.id, new Set()]));
@@ -194,7 +189,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
     for (const l of links) {
       l.ws = 2 / (1 + neighbours.get(l.s.id).size * .15);
       l.wt = 2 / (1 + neighbours.get(l.t.id).size * .15);
-      l.rest = 26 + l.s.r + l.t.r + (l.s.kind === "hub" || l.t.kind === "hub" ? 90 : 0);
+      l.rest = 18 + l.s.r + l.t.r;
     }
     alpha = old.size ? Math.max(alpha, 0.35) : 1;
     if (pinned) pinned = byId.get(pinned.id) || null;
@@ -266,10 +261,10 @@ _TEMPLATE = r"""<!DOCTYPE html>
       l.s.vx += dx * f * l.ws; l.s.vy += dy * f * l.ws;
       l.t.vx -= dx * f * l.wt; l.t.vy -= dy * f * l.wt;
     }
-    // Gentle pull to centre keeps the brain round
+    // Central gravity balances local repulsion: the result is a round sphere.
     for (const n of nodes) {
       if (!visible(n)) continue;
-      n.vx -= n.x * 0.0018 * a; n.vy -= n.y * 0.0018 * a;
+      n.vx -= n.x * GRAVITY * a; n.vy -= n.y * GRAVITY * a;
       if (n.fx != null) { n.x = n.fx; n.y = n.fy; n.vx = n.vy = 0; continue; }
       n.vx *= 0.82; n.vy *= 0.82;
       const sp = Math.hypot(n.vx, n.vy);
@@ -313,8 +308,9 @@ _TEMPLATE = r"""<!DOCTYPE html>
     }
 
     // Links
-    ctx.lineWidth = 0.7 / Math.sqrt(view.k);
-    ctx.strokeStyle = focus || matches ? "rgba(161,161,170,0.05)" : "rgba(161,161,170,0.16)";
+    ctx.lineWidth = 0.8 / Math.sqrt(view.k);
+    ctx.strokeStyle = LINK;
+    if (focus || matches) ctx.globalAlpha = 0.25;
     const [vx0, vy0] = toWorld(0, 0), [vx1, vy1] = toWorld(W, H);
     const off = (n) => n.dx < vx0 || n.dx > vx1 || n.dy < vy0 || n.dy > vy1;
     ctx.beginPath();
@@ -324,6 +320,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
       ctx.moveTo(l.s.dx, l.s.dy); ctx.lineTo(l.t.dx, l.t.dy);
     }
     ctx.stroke();
+    ctx.globalAlpha = 1;
     if (focus) {
       const f = hover || pinned;
       ctx.lineWidth = 1.4 / Math.sqrt(view.k);
@@ -336,58 +333,54 @@ _TEMPLATE = r"""<!DOCTYPE html>
       ctx.stroke(); ctx.globalAlpha = 1;
     }
 
-    // Nodes: one path per (colour, lit) batch keeps fill calls ~O(areas)
+    // Nodes: flat dots, one path per (colour, lit) batch keeps fill calls ~O(areas)
     const batches = new Map();
     for (const n of nodes) {
       if (!visible(n)) continue;
       const lit = focus ? focus.has(n) : matches ? matches.has(n) : true;
-      if ((n.kind === "hub" || n.kind === "area") && lit) continue;  // drawn with glow below
       const key = n.colour + (lit ? "|1" : "|0");
       let b = batches.get(key);
       if (!b) batches.set(key, b = { colour: n.colour, lit, list: [] });
       b.list.push(n);
     }
     for (const b of batches.values()) {
-      ctx.globalAlpha = b.lit ? 1 : 0.12;
+      ctx.globalAlpha = b.lit ? 1 : 0.18;
       ctx.fillStyle = b.colour;
       ctx.beginPath();
       for (const n of b.list) { ctx.moveTo(n.dx + n.r, n.dy); ctx.arc(n.dx, n.dy, n.r, 0, Math.PI * 2); }
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    for (const n of nodes) {
-      if (!visible(n) || (n.kind !== "hub" && n.kind !== "area")) continue;
-      if (focus ? !focus.has(n) : matches ? !matches.has(n) : false) continue;
-      ctx.shadowColor = n.colour; ctx.shadowBlur = n.kind === "hub" ? 28 : 16;
-      ctx.fillStyle = n.colour;
-      ctx.beginPath(); ctx.arc(n.dx, n.dy, n.r, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.shadowBlur = 0;
-    for (const n of [hover, pinned]) {
-      if (!n || !visible(n)) continue;
-      ctx.lineWidth = 2 / view.k; ctx.strokeStyle = "#fff";
-      ctx.beginPath(); ctx.arc(n.dx, n.dy, n.r + 3 / view.k, 0, Math.PI * 2); ctx.stroke();
+    const f0 = hover || pinned;
+    if (f0 && visible(f0)) {
+      ctx.shadowColor = f0.colour; ctx.shadowBlur = 18;
+      ctx.fillStyle = f0.colour;
+      ctx.beginPath(); ctx.arc(f0.dx, f0.dy, f0.r * 1.35, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
     }
 
-    // Labels: big nodes always, small ones when zoomed in or in focus
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    let drawn = 0;
-    for (const n of labelOrder) {
-      if (drawn >= MAX_LABELS) break;
-      if (!visible(n) || off(n)) continue;
-      const inFocus = focus ? focus.has(n) : matches ? matches.has(n) : false;
-      const screenR = n.r * view.k;
-      const show = n.kind === "hub" || n.kind === "area" || inFocus || screenR > 10 || (view.k > 1.8 && n.degree > 2) || view.k > 2.8;
-      if (!show) continue;
-      if ((focus || matches) && !inFocus && n.kind !== "hub") continue;
-      const size = (n.kind === "hub" ? 15 : n.kind === "area" ? 12.5 : 10.5) / Math.min(view.k, 1.8) * Math.max(1, view.k * .55);
-      ctx.font = `${n.kind === "area" || n.kind === "hub" ? 600 : 400} ${size}px Outfit, Segoe UI, system-ui, sans-serif`;
-      ctx.globalAlpha = inFocus || !focus ? .95 : .35;
-      ctx.fillStyle = n.kind === "area" || n.kind === "hub" ? "#f4f4f5" : "#a1a1aa";
-      ctx.fillText(n.label.length > 42 ? n.label.slice(0, 40) + "…" : n.label, n.dx, n.dy + n.r + 3 / view.k);
-      drawn++;
+    // Labels stay hidden to keep the sphere clean. Hovering (or pinning) a node
+    // names it and every branch linked to it; a search names its matches.
+    let labelled = null;
+    if (focus) labelled = [...focus];
+    else if (matches) labelled = [...matches].sort((a, b) => b.degree - a.degree).slice(0, MAX_LABELS);
+    if (labelled) {
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      ctx.lineJoin = "round";
+      const f = hover || pinned;
+      for (const n of labelled) {
+        if (!visible(n) || off(n)) continue;
+        const main = n === f;
+        const size = (main ? 14 : 11) / view.k;
+        ctx.font = `${main ? 600 : 400} ${size}px Outfit, Segoe UI, system-ui, sans-serif`;
+        const text = n.label.length > 42 ? n.label.slice(0, 40) + "…" : n.label;
+        const y = n.dy + n.r * (main ? 1.35 : 1) + 3 / view.k;
+        ctx.lineWidth = 3.5 / view.k; ctx.strokeStyle = "__graph_bg__";
+        ctx.strokeText(text, n.dx, y);
+        ctx.fillStyle = main ? "#ffffff" : "#d4d4d8";
+        ctx.fillText(text, n.dx, y);
+      }
     }
-    ctx.globalAlpha = 1;
   }
 
   function animateView() {
@@ -537,7 +530,10 @@ _TEMPLATE = r"""<!DOCTYPE html>
   });
   document.getElementById("refresh").onclick = load;
   document.getElementById("fit").onclick = fitAll;
-  document.getElementById("legend-toggle").onclick = () => document.getElementById("legend").classList.toggle("collapsed");
+  document.getElementById("legend-toggle").onclick = (e) => {
+    const collapsed = document.getElementById("legend").classList.toggle("collapsed");
+    e.currentTarget.textContent = collapsed ? "🎨 Áreas ▸" : "🎨 Áreas ▾";
+  };
   window.addEventListener("resize", resize);
   for (const ev of ["mousemove", "mousedown", "mouseup", "wheel", "keydown", "input", "click", "resize"])
     window.addEventListener(ev, () => { dirty = true; }, { capture: true, passive: true });

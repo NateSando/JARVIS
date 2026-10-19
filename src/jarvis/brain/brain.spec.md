@@ -63,10 +63,10 @@ During reply enrichment (Step 4b in `reply/engine.py`, same gate as the knowledg
 ## Brain View (desktop, `desktop_app/brain_page.py`)
 
 Served by the memory viewer at `/cerebro` (data at `/api/cerebro`), opened from the tray as "🧠 Cérebro".
-- Canvas 2D, no external scripts (works offline). Spatial-grid repulsion + link springs keep each frame O(n); the simulation cools but never fully freezes (a gentle drift keeps it alive) and re-heats on drag.
-- Hover a node: neighbours highlighted, everything else dimmed, and a card shows the area, every point the note holds ("O que eu sei") and its connections.
-- Click pins the card; search filters by name/point; legend toggles areas; wheel zooms, drag pans, nodes are draggable.
-- Colours derive from the area index; background and accents follow `desktop_app/themes.py`.
+- Canvas 2D, no external scripts (works offline). Shape follows Obsidian's graph view: every node spawns in one disc and central gravity balances spatial-grid repulsion + link springs, so the brain settles into a single round sphere (not per-area clusters). Each frame stays ~O(n); the simulation cools but never fully freezes (a gentle drift keeps small graphs alive), large settled graphs stop redrawing until something changes, and dragging re-heats it.
+- Labels are hidden by default so the sphere stays clean. Hovering a node names it and every node linked to it (neighbours highlighted, everything else dimmed), and a card shows the area, every point the note holds ("O que eu sei") and its connections. Searching names the matches.
+- Click pins the card; search filters by name/point; the (collapsed) legend toggles areas; wheel zooms, drag pans, nodes are draggable.
+- Flat dots, no glow except on the hovered node. Concepts (link targets without a note) are neutral grey; notes take their area colour; the hub is amber. Background, link and muted-node colours come from `graph_*` entries in `desktop_app/themes.py`.
 
 ## Configuration
 

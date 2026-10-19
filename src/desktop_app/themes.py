@@ -36,6 +36,11 @@ COLORS = {
     "warning_light": "#fbbf24",
     "error": "#ef4444",
     "error_light": "#f87171",
+
+    # Brain graph (Obsidian-style sphere)
+    "graph_bg": "#2b2d31",
+    "graph_link": "rgba(200, 200, 205, 0.20)",
+    "graph_node": "#a3a3a8",
 }
 
 
