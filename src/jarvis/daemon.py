@@ -36,7 +36,6 @@ from .config import load_settings
 from .memory.db import Database
 from .memory.conversation import DialogueMemory, update_diary_from_dialogue_memory
 from .output.tts import create_tts_engine
-from .tools.registry import initialize_mcp_tools
 from .debug import debug_log
 from .listening.listener import VoiceListener
 from .utils.location import get_location_context, is_location_available
@@ -319,38 +318,6 @@ def main() -> None:
     print("✓ Daemon started", flush=True)
     print(f"🧠 Using chat model: {cfg.ollama_chat_model}", flush=True)
     print(f"🎤 Using whisper model: {cfg.whisper_model}", flush=True)
-
-    # MCP preflight: discover and cache external MCP tools
-    mcps = getattr(cfg, "mcps", {}) or {}
-    if mcps:
-        print(f"📡 Discovering MCP tools from {len(mcps)} server(s)...", flush=True)
-        try:
-            mcp_tools, mcp_errors = initialize_mcp_tools(mcps, verbose=False)
-
-            # Group tools by server for display
-            tools_by_server: dict = {}
-            for tool_name in mcp_tools.keys():
-                if "__" in tool_name:
-                    server_name = tool_name.split("__")[0]
-                    if server_name not in tools_by_server:
-                        tools_by_server[server_name] = []
-                    tools_by_server[server_name].append(tool_name)
-
-            for server_name in mcps.keys():
-                count = len(tools_by_server.get(server_name, []))
-                if count > 0:
-                    print(f"  ✅ {server_name}: {count} tools available", flush=True)
-                elif server_name in mcp_errors:
-                    print(f"  ❌ {server_name}: {mcp_errors[server_name]}", flush=True)
-                else:
-                    print(f"  ⚠️ {server_name}: no tools discovered", flush=True)
-
-            debug_log(f"MCP tools cached: {len(mcp_tools)} total", "mcp")
-        except Exception as e:
-            debug_log(f"MCP discovery failed: {e}", "mcp")
-            print(f"  ⚠️ MCP discovery failed: {e}", flush=True)
-    else:
-        print("📡 No MCP servers configured", flush=True)
 
     # Initialize dialogue memory with timeout
     print("💾 Initializing dialogue memory...", flush=True)
@@ -660,14 +627,6 @@ def main() -> None:
 
         if tts is not None:
             tts.stop()
-
-        # Tear down persistent MCP sessions so subprocess-launched
-        # children (e.g. chrome-devtools-mcp's Chrome) close cleanly.
-        try:
-            from .tools.external.mcp_runtime import shutdown_runtime
-            shutdown_runtime()
-        except Exception as _e:
-            debug_log(f"MCP runtime shutdown error: {_e}", "jarvis")
 
         db.close()
 

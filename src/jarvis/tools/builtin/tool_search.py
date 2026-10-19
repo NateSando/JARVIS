@@ -76,7 +76,7 @@ class ToolSearchTool(Tool):
 
         cfg = context.cfg
         # Local imports to avoid circulars at module load time.
-        from ..registry import BUILTIN_TOOLS, get_cached_mcp_tools
+        from ..registry import BUILTIN_TOOLS
 
         try:
             strategy = ToolSelectionStrategy(getattr(cfg, "tool_selection_strategy", "llm"))
@@ -84,16 +84,9 @@ class ToolSearchTool(Tool):
             strategy = ToolSelectionStrategy.LLM
 
         try:
-            mcp_tools = get_cached_mcp_tools() if getattr(cfg, "mcps", {}) else {}
-        except Exception as e:
-            debug_log(f"toolSearchTool: MCP cache unavailable: {e}", "tools")
-            mcp_tools = {}
-
-        try:
             selected = select_tools(
                 query=query,
                 builtin_tools=BUILTIN_TOOLS,
-                mcp_tools=mcp_tools,
                 strategy=strategy,
                 llm_base_url=getattr(cfg, "ollama_base_url", ""),
                 llm_model=_resolve_router_model(cfg),
@@ -129,10 +122,6 @@ class ToolSearchTool(Tool):
             tool_obj = BUILTIN_TOOLS.get(tname)
             if tool_obj is not None:
                 desc = (getattr(tool_obj, "description", "") or "").strip()
-            else:
-                spec = mcp_tools.get(tname)
-                if spec is not None:
-                    desc = (getattr(spec, "description", "") or "").strip()
             one_line = desc.splitlines()[0].strip() if desc else ""
             lines.append(f"{tname}: {one_line}" if one_line else tname)
 

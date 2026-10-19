@@ -32,13 +32,6 @@ class FakeTool:
         return self._description
 
 
-class FakeToolSpec:
-    """Minimal ToolSpec stand-in for testing."""
-    def __init__(self, name: str, description: str):
-        self.name = name
-        self.description = description
-
-
 def _builtin():
     """Return a small set of fake builtin tools."""
     return {
@@ -49,13 +42,6 @@ def _builtin():
         "screenshot": FakeTool("screenshot", "Capture a selected screen region and OCR the text."),
         "localFiles": FakeTool("localFiles", "Safely read, write, list, append, or delete files within your home directory."),
         "stop": FakeTool("stop", "End the current conversation."),
-    }
-
-
-def _mcp():
-    """Return a small set of fake MCP tools."""
-    return {
-        "homeassistant__turn_on": FakeToolSpec("homeassistant__turn_on", "Turn on a smart home device."),
     }
 
 
@@ -128,13 +114,13 @@ class TestAllStrategy:
 
     @pytest.mark.unit
     def test_returns_everything(self):
-        result = select_tools("hello", _builtin(), _mcp(), strategy=ToolSelectionStrategy.ALL)
-        assert len(result) == len(_builtin()) + len(_mcp())
+        result = select_tools("hello", _builtin(), strategy=ToolSelectionStrategy.ALL)
+        assert len(result) == len(_builtin())
 
     @pytest.mark.unit
     def test_default_strategy_is_all(self):
-        result = select_tools("hello", _builtin(), _mcp())
-        assert len(result) == len(_builtin()) + len(_mcp())
+        result = select_tools("hello", _builtin())
+        assert len(result) == len(_builtin())
 
 
 # ---------------------------------------------------------------------------
@@ -145,43 +131,38 @@ class TestKeywordStrategy:
 
     @pytest.mark.unit
     def test_weather_query_selects_weather_tool(self):
-        result = select_tools("what's the weather in London", _builtin(), {}, strategy=ToolSelectionStrategy.KEYWORD)
+        result = select_tools("what's the weather in London", _builtin(), strategy=ToolSelectionStrategy.KEYWORD)
         assert "getWeather" in result
 
     @pytest.mark.unit
     def test_weather_query_excludes_irrelevant(self):
-        result = select_tools("what's the weather in London", _builtin(), {}, strategy=ToolSelectionStrategy.KEYWORD)
+        result = select_tools("what's the weather in London", _builtin(), strategy=ToolSelectionStrategy.KEYWORD)
         assert "logMeal" not in result
         assert "screenshot" not in result
 
     @pytest.mark.unit
     def test_meal_query_selects_meal_tools(self):
-        result = select_tools("what did I eat yesterday", _builtin(), {}, strategy=ToolSelectionStrategy.KEYWORD)
+        result = select_tools("what did I eat yesterday", _builtin(), strategy=ToolSelectionStrategy.KEYWORD)
         assert "fetchMeals" in result or "logMeal" in result
 
     @pytest.mark.unit
     def test_search_query_selects_web_search(self):
-        result = select_tools("search for python tutorials", _builtin(), {}, strategy=ToolSelectionStrategy.KEYWORD)
+        result = select_tools("search for python tutorials", _builtin(), strategy=ToolSelectionStrategy.KEYWORD)
         assert "webSearch" in result
 
     @pytest.mark.unit
     def test_stop_always_included(self):
-        result = select_tools("what's the weather", _builtin(), {}, strategy=ToolSelectionStrategy.KEYWORD)
+        result = select_tools("what's the weather", _builtin(), strategy=ToolSelectionStrategy.KEYWORD)
         assert "stop" in result
 
     @pytest.mark.unit
     def test_vague_query_falls_back_to_all(self):
-        result = select_tools("hmm", _builtin(), {}, strategy=ToolSelectionStrategy.KEYWORD)
+        result = select_tools("hmm", _builtin(), strategy=ToolSelectionStrategy.KEYWORD)
         assert len(result) == len(_builtin())
 
     @pytest.mark.unit
-    def test_mcp_tools_included(self):
-        result = select_tools("turn on the lights", _builtin(), _mcp(), strategy=ToolSelectionStrategy.KEYWORD)
-        assert "homeassistant__turn_on" in result
-
-    @pytest.mark.unit
     def test_file_query_selects_local_files(self):
-        result = select_tools("read the config file", _builtin(), {}, strategy=ToolSelectionStrategy.KEYWORD)
+        result = select_tools("read the config file", _builtin(), strategy=ToolSelectionStrategy.KEYWORD)
         assert "localFiles" in result
 
 
@@ -215,7 +196,7 @@ class TestEmbeddingStrategy:
         with patch("jarvis.memory.embeddings.get_embedding", side_effect=mock_embed):
             result = select_tools(
                 "what's the weather",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.EMBEDDING,
                 llm_base_url="http://localhost",
                 embed_model="nomic-embed-text",
@@ -231,7 +212,7 @@ class TestEmbeddingStrategy:
         with patch("jarvis.memory.embeddings.get_embedding", side_effect=mock_embed):
             result = select_tools(
                 "what's the weather",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.EMBEDDING,
                 llm_base_url="http://localhost",
                 embed_model="nomic-embed-text",
@@ -247,12 +228,12 @@ class TestEmbeddingStrategy:
         with patch("jarvis.memory.embeddings.get_embedding", side_effect=mock_fail):
             result = select_tools(
                 "anything",
-                _builtin(), _mcp(),
+                _builtin(),
                 strategy=ToolSelectionStrategy.EMBEDDING,
                 llm_base_url="http://localhost",
                 embed_model="nomic-embed-text",
             )
-        assert len(result) == len(_builtin()) + len(_mcp())
+        assert len(result) == len(_builtin())
 
     @pytest.mark.unit
     def test_returns_minimum_tools(self):
@@ -268,7 +249,7 @@ class TestEmbeddingStrategy:
         with patch("jarvis.memory.embeddings.get_embedding", side_effect=mock_embed):
             result = select_tools(
                 "something obscure",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.EMBEDDING,
                 llm_base_url="http://localhost",
                 embed_model="nomic-embed-text",
@@ -323,7 +304,7 @@ class TestEmbeddingStrategy:
         with patch("jarvis.memory.embeddings.get_embedding", side_effect=mock_embed):
             result = select_tools(
                 "what's the weather",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.EMBEDDING,
                 llm_base_url="http://localhost",
                 embed_model="nomic-embed-text",
@@ -358,7 +339,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             result = select_tools(
                 "what's the weather",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
@@ -375,7 +356,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             result = select_tools(
                 "hello",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
@@ -395,7 +376,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             result = select_tools(
                 "weather in London",
-                _builtin(), _mcp(),
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
@@ -416,7 +397,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             result = select_tools(
                 "weather report",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
@@ -436,21 +417,17 @@ class TestLLMStrategy:
 
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             result = select_tools(
-                "navigate to youtube.com",
+                "search the web for python tutorials",
                 _builtin(),
-                {"chrome-devtools__navigate_page": FakeToolSpec(
-                    "chrome-devtools__navigate_page",
-                    "Navigate the browser to a given URL.",
-                )},
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
             )
-        # Keyword scoring matches "navigate" → chrome-devtools__navigate_page.
-        assert "chrome-devtools__navigate_page" in result
+        # Keyword scoring matches "search"/"web" → webSearch.
+        assert "webSearch" in result
         # The full catalogue must NOT be returned — that's the regression we're
         # fixing (small-model 41-tool overload).
-        assert len(result) < len(_builtin()) + 1
+        assert len(result) < len(_builtin())
 
     @pytest.mark.unit
     def test_ignores_hallucinated_tool_names(self):
@@ -460,7 +437,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             result = select_tools(
                 "search and weather",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
@@ -483,7 +460,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             result = select_tools(
                 "chatty router",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
@@ -504,7 +481,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             result = select_tools(
                 "arbitrary query",
-                _builtin(), _mcp(),
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
@@ -542,7 +519,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             select_tools(
                 "I'm in London",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",
@@ -572,7 +549,7 @@ class TestLLMStrategy:
         with patch("jarvis.llm.call_llm_direct", side_effect=mock_llm):
             select_tools(
                 "what's the weather?",
-                _builtin(), {},
+                _builtin(),
                 strategy=ToolSelectionStrategy.LLM,
                 llm_base_url="http://localhost",
                 llm_model="test",

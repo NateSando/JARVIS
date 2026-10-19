@@ -54,15 +54,10 @@ def _indent_text(text: str, prefix: str = "  ") -> str:
     return f"\n{prefix}".join(text.splitlines())
 
 
-def _get_tool_input_schema(
-    tool_name: Optional[str],
-    mcp_tools: Optional[dict] = None,
-) -> Optional[dict]:
+def _get_tool_input_schema(tool_name: Optional[str]) -> Optional[dict]:
     if not tool_name:
         return None
     spec = BUILTIN_TOOLS.get(tool_name)
-    if spec is None and mcp_tools:
-        spec = mcp_tools.get(tool_name)
     if spec is None:
         return None
     raw = getattr(spec, "inputSchema", None)
@@ -72,7 +67,6 @@ def _get_tool_input_schema(
 def _validate_tool_args_against_schema(
     tool_name: Optional[str],
     args: Optional[dict],
-    mcp_tools: Optional[dict] = None,
 ) -> Optional[str]:
     """Return a short error string when args don't satisfy the input schema.
 
@@ -89,7 +83,7 @@ def _validate_tool_args_against_schema(
         args = {}
     if not isinstance(args, dict):
         return "arguments is not an object"
-    schema = _get_tool_input_schema(tool_name, mcp_tools)
+    schema = _get_tool_input_schema(tool_name)
     if not schema:
         return None
     props = schema.get("properties")
@@ -114,14 +108,11 @@ def _validate_tool_args_against_schema(
     return None
 
 
-def _format_tool_schema_hint(
-    tool_name: Optional[str],
-    mcp_tools: Optional[dict] = None,
-) -> str:
+def _format_tool_schema_hint(tool_name: Optional[str]) -> str:
     """Render ``toolName(param: type required, ...)`` for nudge injection."""
     if not tool_name:
         return ""
-    schema = _get_tool_input_schema(tool_name, mcp_tools)
+    schema = _get_tool_input_schema(tool_name)
     if not schema:
         return f"{tool_name}()"
     props = schema.get("properties")
@@ -827,26 +818,6 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
             except Exception:
                 pass
 
-    # Refresh MCP tools on new conversation (memory expired)
-    if is_new_conversation and getattr(cfg, "mcps", {}):
-        try:
-            from ..tools.registry import refresh_mcp_tools, is_mcp_cache_initialized
-            if is_mcp_cache_initialized():
-                debug_log("New conversation detected, refreshing MCP tools", "mcp")
-                _tools, _errors = refresh_mcp_tools(verbose=False)
-        except Exception as e:
-            debug_log(f"MCP refresh on new conversation failed: {e}", "mcp")
-
-    # Load MCP tools cache now so the planner sees the full catalog.
-    mcp_tools: dict = {}
-    if getattr(cfg, "mcps", {}):
-        try:
-            from ..tools.registry import get_cached_mcp_tools
-            mcp_tools = get_cached_mcp_tools()
-        except Exception as e:
-            debug_log(f"⚠️ Failed to get cached MCP tools: {e}", "mcp")
-            mcp_tools = {}
-
     # ── Step 3: Pre-flight planner ─────────────────────────────────────
     # The planner runs FIRST, before any memory lookup or tool routing.
     # Its job is to decide up front what preparation this turn needs:
@@ -866,9 +837,7 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
     # A positive single-step ``["Reply to the user."]`` plan is NOT the
     # same as ``[]``: it's the planner deciding no memory or tools are
     # needed. Both cases are preserved for the engine to distinguish.
-    _all_builtin_names = list(BUILTIN_TOOLS.keys())
-    _all_mcp_names = list(mcp_tools.keys())
-    _full_catalog_names = _all_builtin_names + _all_mcp_names
+    _full_catalog_names = list(BUILTIN_TOOLS.keys())
 
     _dialogue_lines: list[str] = []
     for _m in (recent_messages or [])[-6:]:
@@ -893,15 +862,14 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
         strategy = ToolSelectionStrategy.LLM
     # Hot-window cache: router output for the same redacted query and
     # tool catalogue is reused within one conversation. Catalogue
-    # signature includes builtin + MCP tool names so a mid-window MCP
-    # refresh invalidates the cache. context_hint is intentionally not
+    # signature includes the tool names so a catalogue change invalidates
+    # the cache. context_hint is intentionally not
     # part of the key — time/location drift inside one hot window
     # rarely changes the tool pick.
     _router_cache_key = (
         f"router:{redacted}|"
         f"{strategy.value}|"
-        f"{','.join(sorted(BUILTIN_TOOLS.keys()))}|"
-        f"{','.join(sorted((mcp_tools or {}).keys()))}"
+        f"{','.join(sorted(BUILTIN_TOOLS.keys()))}"
     )
     _cached_routed = (
         dialogue_memory.hot_cache_get(_router_cache_key)
@@ -914,7 +882,6 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
         routed_tools = select_tools(
             query=redacted,
             builtin_tools=BUILTIN_TOOLS,
-            mcp_tools=mcp_tools,
             strategy=strategy,
             llm_base_url=cfg.ollama_base_url,
             llm_model=resolve_tool_router_model(cfg),
@@ -975,7 +942,7 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
                 "planning",
             )
 
-    _planner_schema = generate_tools_json_schema(routed_tools, mcp_tools)
+    _planner_schema = generate_tools_json_schema(routed_tools)
     _planner_tool_catalog: list[tuple[str, str]] = []
     for _schema in (_planner_schema or []):
         _fn = _schema.get("function", {}) if isinstance(_schema, dict) else {}
@@ -1359,8 +1326,8 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
         "planning",
     )
 
-    tools_desc = generate_tools_description(allowed_tools, mcp_tools)
-    tools_json_schema = generate_tools_json_schema(allowed_tools, mcp_tools)
+    tools_desc = generate_tools_description(allowed_tools)
+    tools_json_schema = generate_tools_json_schema(allowed_tools)
     # Flat list of tool names for anti-hallucination prompt and parser filter.
     known_tool_names: set = set()
     try:
@@ -1373,12 +1340,8 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
         pass
 
     # Log tool availability (helps diagnose hangs)
-    mcp_count = len(mcp_tools)
     total_tools = len(allowed_tools)
-    if mcp_count > 0:
-        debug_log(f"🤖 starting with {total_tools} tools available ({mcp_count} from MCP)", "planning")
-    else:
-        debug_log(f"🤖 starting with {total_tools} tools available", "planning")
+    debug_log(f"🤖 starting with {total_tools} tools available", "planning")
 
     # Warn about too many tools (can overwhelm smaller models)
     if total_tools > 15:
@@ -2184,8 +2147,6 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
                     # like "No additional tools found for that description."
                     # get treated as tool names and pollute the allow-list.
                     _valid_names = set(BUILTIN_TOOLS.keys())
-                    if mcp_tools:
-                        _valid_names.update(mcp_tools.keys())
                     for line in (result.reply_text or "").splitlines():
                         # Lines look like "toolName: one-line description"; fall
                         # back to splitting on em dash for backwards compat.
@@ -2215,8 +2176,8 @@ def run_reply_engine(db: "Database", cfg, tts: Optional[Any],
                     # block stay stale and the surfaced tools can't actually
                     # be invoked until the next reply.
                     if newly_added:
-                        tools_desc = generate_tools_description(allowed_tools, mcp_tools)
-                        tools_json_schema = generate_tools_json_schema(allowed_tools, mcp_tools)
+                        tools_desc = generate_tools_description(allowed_tools)
+                        tools_json_schema = generate_tools_json_schema(allowed_tools)
                         if use_text_tools:
                             # Rebuild the first system message so the fresh
                             # tools_desc replaces the stale one. _update_system_

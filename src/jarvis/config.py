@@ -268,8 +268,6 @@ class Settings:
     dictation_filler_removal: bool
     dictation_custom_dictionary: list
 
-    # MCP Integration
-    mcps: Dict[str, Any]
 
 
 
@@ -572,8 +570,6 @@ def get_default_config() -> Dict[str, Any]:
         "dictation_thinking_enabled": False,  # Enable thinking for dictation filler removal (adds latency)
         "dictation_custom_dictionary": [],
 
-        # MCP Integration (external servers Jarvis can use). No defaults.
-        "mcps": {},
     }
 
 
@@ -776,7 +772,6 @@ def load_settings() -> Settings:
     dictation_filler_removal = bool(merged.get("dictation_filler_removal", False))
     raw_dict = merged.get("dictation_custom_dictionary", [])
     dictation_custom_dictionary = list(raw_dict) if isinstance(raw_dict, list) else []
-    mcps = _ensure_dict(merged.get("mcps"))
     whisper_min_confidence = float(merged.get("whisper_min_confidence", 0.4))
     whisper_no_speech_threshold = float(merged.get("whisper_no_speech_threshold", 0.5))
     whisper_min_audio_duration = float(merged.get("whisper_min_audio_duration", 0.3))
@@ -925,6 +920,4 @@ def load_settings() -> Settings:
         dictation_filler_removal=dictation_filler_removal,
         dictation_custom_dictionary=dictation_custom_dictionary,
 
-        # MCP Integration
-        mcps=mcps,
     )

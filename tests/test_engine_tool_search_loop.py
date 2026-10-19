@@ -140,9 +140,9 @@ def test_initial_allowlist_always_includes_toolsearchtool(
         # Patch the tools description generator to snapshot the allow-list.
         real_generate = engine_mod.generate_tools_json_schema
 
-        def spy_schema(allowed_tools, mcp_tools):
+        def spy_schema(allowed_tools):
             captured_allow_lists.append(list(allowed_tools))
-            return real_generate(allowed_tools, mcp_tools)
+            return real_generate(allowed_tools)
 
         with patch.object(
             engine_mod, "generate_tools_json_schema", side_effect=spy_schema
@@ -306,7 +306,6 @@ def test_validate_tool_args_catches_unknown_keys():
     err = _validate_tool_args_against_schema(
         "webSearch",
         {"query": "tube strikes today"},
-        mcp_tools=None,
     )
     assert err is not None
     assert "unknown argument" in err.lower()
@@ -319,7 +318,6 @@ def test_validate_tool_args_passes_correct_keys():
     err = _validate_tool_args_against_schema(
         "webSearch",
         {"search_query": "tube strikes today"},
-        mcp_tools=None,
     )
     assert err is None
 
@@ -330,7 +328,6 @@ def test_validate_tool_args_catches_missing_required():
     err = _validate_tool_args_against_schema(
         "webSearch",
         {},
-        mcp_tools=None,
     )
     assert err is not None
     assert "missing required" in err.lower()

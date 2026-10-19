@@ -40,7 +40,7 @@ The engine caps invocations per reply via `tool_search_max_calls` (default 3). B
 
 ### What toolSearchTool is NOT
 
-- Not a free-form tool discovery surface: it uses the same routing pipeline as the pre-loop call, not a raw "list every tool" dump. The router already applies allow/deny logic and MCP-awareness; reusing it keeps semantics consistent.
+- Not a free-form tool discovery surface: it uses the same routing pipeline as the pre-loop call, not a raw "list every tool" dump. The router already applies allow/deny logic; reusing it keeps semantics consistent.
 - Not a way to bypass authorisation: if the router would not have picked a tool pre-loop, `toolSearchTool` will not surface it either.
 - Not free: each call is an LLM round-trip. The model is told to use it only when none of the currently-available tools fit.
 

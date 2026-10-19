@@ -47,7 +47,6 @@ def _route(query: str, context_hint):
     return select_tools(
         query=query,
         builtin_tools=BUILTIN_TOOLS,
-        mcp_tools={},
         strategy=ToolSelectionStrategy.LLM,
         llm_base_url=JUDGE_BASE_URL,
         llm_model=JUDGE_MODEL,

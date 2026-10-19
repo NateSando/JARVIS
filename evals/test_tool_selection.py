@@ -87,7 +87,6 @@ class TestToolSelectionFiltering:
         selected = select_tools(
             query=query,
             builtin_tools=BUILTIN_TOOLS,
-            mcp_tools={},
             strategy=ToolSelectionStrategy.EMBEDDING,
             llm_base_url=mock_config.ollama_base_url,
             embed_model=mock_config.ollama_embed_model,
@@ -137,7 +136,6 @@ class TestToolSelectionFilteringLLM:
         selected = select_tools(
             query=query,
             builtin_tools=BUILTIN_TOOLS,
-            mcp_tools={},
             strategy=ToolSelectionStrategy.LLM,
             llm_base_url=mock_config.ollama_base_url,
             llm_model=JUDGE_MODEL,

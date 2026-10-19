@@ -1,5 +1,8 @@
+import os
 import types
+
 import pytest
+import requests
 
 from jarvis.tools.registry import run_tool_with_retries, ToolExecutionResult
 
@@ -40,8 +43,8 @@ def test_local_files_list_and_read(tmp_path):
     import builtins
     from pathlib import Path as _P
 
-    orig_expanduser = tools_mod.os.path.expanduser
-    tools_mod.os.path.expanduser = lambda p: str(tmp_path) if p == "~" or p.startswith("~") else orig_expanduser(p)
+    orig_expanduser = os.path.expanduser
+    os.path.expanduser = lambda p: str(tmp_path) if p == "~" or p.startswith("~") else orig_expanduser(p)
 
     try:
         # list
@@ -72,7 +75,7 @@ def test_local_files_list_and_read(tmp_path):
         assert res_read.success is True
         assert (res_read.reply_text or "").strip() == "hello"
     finally:
-        tools_mod.os.path.expanduser = orig_expanduser
+        os.path.expanduser = orig_expanduser
 
 
 @pytest.mark.unit
@@ -81,8 +84,8 @@ def test_local_files_write_append_delete(tmp_path):
     cfg = DummyCfg()
     import jarvis.tools.registry as tools_mod
 
-    orig_expanduser = tools_mod.os.path.expanduser
-    tools_mod.os.path.expanduser = lambda p: str(tmp_path) if p == "~" or p.startswith("~") else orig_expanduser(p)
+    orig_expanduser = os.path.expanduser
+    os.path.expanduser = lambda p: str(tmp_path) if p == "~" or p.startswith("~") else orig_expanduser(p)
     try:
         # write
         res_write = run_tool_with_retries(
@@ -137,7 +140,7 @@ def test_local_files_write_append_delete(tmp_path):
         )
         assert res_del.success is True
     finally:
-        tools_mod.os.path.expanduser = orig_expanduser
+        os.path.expanduser = orig_expanduser
 
 
 @pytest.mark.unit
@@ -175,7 +178,7 @@ def test_fetch_web_page_success(monkeypatch):
     def mock_requests_get(url, **kwargs):
         return MockResponse()
     
-    monkeypatch.setattr(tools_mod.requests, 'get', mock_requests_get)
+    monkeypatch.setattr(requests, 'get', mock_requests_get)
     
     db = DummyDB()
     cfg = DummyCfg()
