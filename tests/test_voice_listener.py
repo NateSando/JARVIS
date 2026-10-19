@@ -1354,6 +1354,17 @@ class TestCorruptedWhisperCacheRecovery:
                             assert listener.model is None
 
 
+def _listener_clock():
+    """The listener's ``time`` with a recording no-op ``sleep``.
+
+    Patching ``time.sleep`` itself would replace it for every thread in the
+    process, so unrelated background sleeps would leak into the assertions.
+    """
+    clock = MagicMock(wraps=time)
+    clock.sleep = MagicMock()
+    return clock
+
+
 class TestWhisperRateLimitRetry:
     """Tests for retry logic when HuggingFace returns 429 Too Many Requests."""
 
@@ -1378,7 +1389,7 @@ class TestWhisperRateLimitRetry:
                             mock_sd.query_devices.return_value = [{"name": "Test Mic", "max_input_channels": 1}]
                             mock_sd.InputStream.side_effect = Exception("Stop test here")
 
-                            with patch("jarvis.listening.listener.time.sleep"):  # Skip actual sleep
+                            with patch("jarvis.listening.listener.time", _listener_clock()):  # Skip actual sleep
                                 from jarvis.listening.listener import VoiceListener
 
                                 mock_db = MagicMock()
@@ -1406,7 +1417,8 @@ class TestWhisperRateLimitRetry:
                         with patch("jarvis.listening.listener.sd") as mock_sd:
                             mock_sd.query_devices.return_value = [{"name": "Test Mic", "max_input_channels": 1}]
 
-                            with patch("jarvis.listening.listener.time.sleep") as mock_sleep:
+                            with patch("jarvis.listening.listener.time", _listener_clock()) as _clock:
+                                mock_sleep = _clock.sleep
                                 from jarvis.listening.listener import VoiceListener
 
                                 mock_db = MagicMock()
@@ -1452,7 +1464,7 @@ class TestWhisperRateLimitRetry:
                             mock_sd.query_devices.return_value = [{"name": "Test Mic", "max_input_channels": 1}]
                             mock_sd.InputStream.side_effect = Exception("Stop test here")
 
-                            with patch("jarvis.listening.listener.time.sleep"):
+                            with patch("jarvis.listening.listener.time", _listener_clock()):
                                 from jarvis.listening.listener import VoiceListener
 
                                 mock_db = MagicMock()
