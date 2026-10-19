@@ -120,6 +120,10 @@ class Settings:
     kokoro_voices_path: str | None  # Path to voices .bin; None = auto-download
     kokoro_robot_effect: float  # Robotic J.A.R.V.I.S. colouring, 0.0 (off) to 1.0
 
+    # Code & system access (read-only, opt-in). Empty roots = no code access.
+    code_access_roots: list[str]
+    system_access_enabled: bool
+
     # Obsidian brain (vault mirror of the knowledge graph + skill map)
     obsidian_enabled: bool
     obsidian_vault_path: str  # Vault folder (created if missing)
@@ -437,6 +441,10 @@ def get_default_config() -> Dict[str, Any]:
         "kokoro_voices_path": None,  # Path to voices .bin; None = auto-download
         "kokoro_robot_effect": 0.35,  # Robotic colouring: 0.0 = natural, 1.0 = fully synthetic
 
+        # Code & system access: nothing is readable until the user grants it
+        "code_access_roots": [],
+        "system_access_enabled": False,
+
         # Obsidian brain
         "obsidian_enabled": True,
         "obsidian_vault_path": str(Path.home() / "Obsidian" / "JARVIS"),
@@ -654,6 +662,8 @@ def load_settings() -> Settings:
     kokoro_speed = float(merged.get("kokoro_speed", 1.0))
     kokoro_lang = str(merged.get("kokoro_lang") or defaults["kokoro_lang"])
     kokoro_robot_effect = min(max(float(merged.get("kokoro_robot_effect", defaults["kokoro_robot_effect"])), 0.0), 1.0)
+    code_access_roots = _ensure_list(merged.get("code_access_roots"))
+    system_access_enabled = bool(merged.get("system_access_enabled", False))
     obsidian_enabled = bool(merged.get("obsidian_enabled", True))
     obsidian_vault_path = os.path.expanduser(
         str(merged.get("obsidian_vault_path") or defaults["obsidian_vault_path"])
@@ -825,6 +835,8 @@ def load_settings() -> Settings:
         kokoro_model_path=kokoro_model_path,
         kokoro_voices_path=kokoro_voices_path,
         kokoro_robot_effect=kokoro_robot_effect,
+        code_access_roots=code_access_roots,
+        system_access_enabled=system_access_enabled,
         obsidian_enabled=obsidian_enabled,
         obsidian_vault_path=obsidian_vault_path,
 

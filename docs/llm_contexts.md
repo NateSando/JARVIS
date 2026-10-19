@@ -18,7 +18,7 @@ Every distinct LLM call in Jarvis, what feeds it, what consumes it, and how it i
   - Language rule: "Always respond in English" is appended only when `tts_engine` is `piper` or `chatterbox` (English-only voices). The default `kokoro` engine is multilingual, so no language constraint is added
   - Time + location context (re-injected each turn)
   - Tool schema: native via `generate_tools_json_schema()` ([src/jarvis/tools/registry.py](src/jarvis/tools/registry.py)) or text fallback via `_text_tool_call_guidance()` ([engine.py:68](src/jarvis/reply/engine.py:68))
-  - Tool results from prior turns (raw or digested — see #5)
+  - Tool results from prior turns (raw or digested — see #5). Includes `codeInspect` (granted code folders, secrets never read, content scrubbed) and `systemInfo` (opt-in machine snapshot); both are read-only, capped, and refuse with a "how to grant" message until enabled. See [code_access.spec.md](src/jarvis/tools/builtin/code_access/code_access.spec.md)
 - **Output**: OpenAI-style `{content, tool_calls, thinking}`. Consumed by the tool orchestrator and TTS pipeline. Natural-language content is delivered immediately; no post-turn evaluator runs.
 - **Limits**: `num_ctx: 8192` (explicit). Timeout `llm_chat_timeout_sec` (45s). Auto-fallback from native to text tool-calls on HTTP 400 (`ToolsNotSupportedError`), sticky for the session. Risk: `fetch_web_page` truncates at 50,000 chars (~37k tokens) — mitigated for SMALL models by tool-result digest (#5) which compresses the payload before it enters the messages history. LARGE models receive the raw payload and may silently see a truncated context.
 

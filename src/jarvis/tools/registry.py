@@ -12,6 +12,8 @@ import os
 from .builtin.screenshot import ScreenshotTool
 from .builtin.web_search import WebSearchTool
 from .builtin.local_files import LocalFilesTool
+from .builtin.code_access.code_inspect import CodeInspectTool
+from .builtin.code_access.system_info import SystemInfoTool
 from .builtin.fetch_web_page import FetchWebPageTool
 from .builtin.nutrition.log_meal import LogMealTool
 from .builtin.nutrition.fetch_meals import FetchMealsTool
@@ -31,6 +33,8 @@ BUILTIN_TOOLS = {
     "screenshot": ScreenshotTool(),
     "webSearch": WebSearchTool(),
     "localFiles": LocalFilesTool(),
+    "codeInspect": CodeInspectTool(),
+    "systemInfo": SystemInfoTool(),
     "fetchWebPage": FetchWebPageTool(),
     "logMeal": LogMealTool(),
     "fetchMeals": FetchMealsTool(),

@@ -66,6 +66,7 @@ CATEGORIES = [
     ("timing", "⏱️ Timing & Windows"),
     ("memory", "🧠 Memory & Dialogue"),
     ("obsidian", "🟣 Obsidian Brain"),
+    ("access", "🔐 Code & System Access"),
     ("location", "📍 Location"),
     ("features", "✨ Features"),
     ("mcps", "🔌 MCP Servers"),
@@ -167,6 +168,14 @@ def _build_field_metadata() -> List[FieldMeta]:
     f("obsidian_vault_path", "Vault Folder",
       "Obsidian vault folder (created if missing). Point it at your own vault to include your notes.",
       "obsidian", "str")
+
+    # --- Code & System Access (read-only, opt-in) ---
+    f("code_access_roots", "Code Folders",
+      "Project folders Jarvis may read (structure, search, files). Read-only; secrets such as .env and keys are never opened.",
+      "access", "list")
+    f("system_access_enabled", "System Information",
+      "Let Jarvis read OS, CPU, memory, disk and process usage (no command lines or personal data)",
+      "access", "bool")
 
     # --- Piper TTS ---
     f("tts_piper_length_scale", "Speed Scale",

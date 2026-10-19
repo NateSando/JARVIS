@@ -165,7 +165,7 @@ Jarvis starts listening automatically — just say "Jarvis" and talk!
 - **Unlimited Memory** - Never forgets. Searches across all your conversation history. Memory Viewer GUI included.
 - **Adaptive Tone** - Automatically surgical for code, pragmatic for business, encouraging for wellbeing — no manual mode switching
 - **Smart Tool Selection** - Embedding-based relevance filtering picks only the tools needed per query — add unlimited MCP tools without performance degradation
-- **Built-in Tools** - Screenshot OCR, web search (DuckDuckGo → Brave → Wikipedia fallback chain with auto-fetch), weather, file access, nutrition tracking, location awareness, plus a tool-discovery escape hatch the agent uses to widen its own toolset mid-reply
+- **Built-in Tools** - Screenshot OCR, web search (DuckDuckGo → Brave → Wikipedia fallback chain with auto-fetch), weather, file access, read-only code inspection and system info (opt-in, see below), nutrition tracking, location awareness, plus a tool-discovery escape hatch the agent uses to widen its own toolset mid-reply
 - **Knowledge Graph Memory** - Self-organising memory that learns from conversations, auto-splits by topic, and surfaces relevant knowledge automatically
 - **Obsidian Brain** - Everything Jarvis learns is mirrored into an Obsidian vault as linked notes, alongside a skill map. Open "🧠 Cérebro" from the tray for a living graph of what you know (hover any node to see every point it holds), and point it at your own vault so your notes become part of Jarvis's memory
 - **J.A.R.V.I.S. Voice** - Kokoro TTS on CPU with a male, subtly robotic voice that speaks Portuguese (and other languages) and starts talking after the first sentence
@@ -353,6 +353,22 @@ Voice cloning with Chatterbox - add a 3-10 second .wav sample:
   "tts_chatterbox_audio_prompt": "/path/to/voice.wav"
 }
 ```
+
+</details>
+
+<details>
+<summary><strong>Code & System Access (opt-in)</strong></summary>
+
+With your permission Jarvis can read the structure of your projects (overview, folder tree, search, file contents, class/function outlines) and a snapshot of your computer (OS, CPU, memory, disks, heaviest processes). Both are **read-only and off by default**:
+
+```json
+{
+  "code_access_roots": ["~/projects/lexguard", "~/projects/jarvis"],
+  "system_access_enabled": true
+}
+```
+
+Or use Settings → "🔐 Code & System Access". Jarvis can only read inside the listed folders, never opens secrets (`.env`, keys, certificates, credential files), masks tokens and passwords in what it reads, and cannot write, delete or run anything. Process command lines and personal data are never reported.
 
 </details>
 

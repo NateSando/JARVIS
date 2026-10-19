@@ -23,6 +23,7 @@ Any code change must either adhere to our spec files perfectly or you should ask
 | `src/jarvis/reply/prompts/prompts.spec.md` | System/user prompt templates | — |
 | `src/jarvis/tools/builtin/web_search.spec.md` | webSearch tool: cascade fetch, SSRF guard, prompt-injection fence, links-only envelope | Untrusted web content is fenced as data, not instructions; rank preference over speed; honest failure over confabulation |
 | `src/jarvis/tools/builtin/nutrition/log_meal.spec.md` | logMeal tool: single-property schema for planner fast-path, internal nutrition extraction, untrusted-data fence, follow-ups | Public schema is a single optional `meal` string; nutrition fields are internal; user text is fenced as data |
+| `src/jarvis/tools/builtin/code_access/code_access.spec.md` | codeInspect + systemInfo: read-only, opt-in access to the user's code folders and machine | Off until granted; resolved paths must stay inside granted roots; secret files never opened; content scrubbed; no write/exec |
 | `src/jarvis/brain/brain.spec.md` | Obsidian brain: vault mirror of the knowledge graph, skill map seeded from the system prompt, brain map + `/cerebro` view, vault recall | Vault is the single on-disk truth; only `jarvis_id` files are rewritten; labels in pt-BR; offline canvas |
 | `src/jarvis/utils/location.spec.md` | GeoIP location detection | Privacy-first; local GeoLite2 DB only |
 | `src/jarvis/memory/graph.spec.md` | Node graph memory (v2), self-organising tree, UI explorer | Dynamic structure; access-aware; auto-split/merge (future) |

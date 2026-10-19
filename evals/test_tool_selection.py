@@ -50,6 +50,24 @@ TOOL_SELECTION_CASES = [
         5,
         id="web search query selects webSearch and few others",
     ),
+    pytest.param(
+        "where in my project is the payment service implemented",
+        ["codeInspect"],
+        5,
+        id="own-code question selects codeInspect and few others",
+    ),
+    pytest.param(
+        "como está a estrutura do meu código no projeto LexGuard",
+        ["codeInspect"],
+        5,
+        id="Portuguese code-structure question selects codeInspect",
+    ),
+    pytest.param(
+        "why is my computer so slow, what's eating the memory",
+        ["systemInfo"],
+        5,
+        id="machine health question selects systemInfo and few others",
+    ),
 ]
 
 
