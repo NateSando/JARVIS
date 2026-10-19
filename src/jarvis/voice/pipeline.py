@@ -10,7 +10,7 @@ import numpy as np
 
 from .audio_io import AudioCapture
 from .stt import WhisperSTT
-from .tts_kokoro import KokoroTTS, KOKORO_VOICES
+from .tts_kokoro import DEFAULT_LANG, DEFAULT_VOICE, KokoroTTS, KOKORO_VOICES
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,11 @@ class VoicePipeline:
     whisper_model_size:
         Tamanho do modelo Whisper (``"tiny"``, ``"base"``, ``"small"``, ``"medium"``).
     kokoro_voice:
-        ID da voz Kokoro. Ver ``KOKORO_VOICES``.
+        ID da voz Kokoro ou mistura ``"voz:peso,..."``. Ver ``KOKORO_VOICES``.
+    kokoro_lang:
+        Idioma de pronúncia do Kokoro (ex.: ``"pt-br"``).
+    kokoro_robot_effect:
+        Intensidade do efeito robótico J.A.R.V.I.S. (0.0 a 1.0).
     kokoro_speed:
         Velocidade de fala (1.0 = normal).
     whisper_language:
@@ -60,8 +64,10 @@ class VoicePipeline:
         chat_model: str = "gemma:2b",
         system_prompt: str = "Você é JARVIS, um assistente de voz conciso e útil. Responda em poucas frases.",
         whisper_model_size: str = "small",
-        kokoro_voice: str = "af_heart",
+        kokoro_voice: str = DEFAULT_VOICE,
         kokoro_speed: float = 1.0,
+        kokoro_lang: str = DEFAULT_LANG,
+        kokoro_robot_effect: float = 0.35,
         whisper_language: Optional[str] = None,
         on_transcribed: Optional[Callable[[str], None]] = None,
         on_response: Optional[Callable[[str], None]] = None,
@@ -89,6 +95,8 @@ class VoicePipeline:
         self._tts = KokoroTTS(
             voice=kokoro_voice,
             speed=kokoro_speed,
+            lang=kokoro_lang,
+            robot_strength=kokoro_robot_effect,
         )
 
         # Captura de microfone

@@ -96,7 +96,7 @@ class Settings:
 
     # Text-to-Speech
     tts_enabled: bool
-    tts_engine: str  # "piper" (default) or "chatterbox"
+    tts_engine: str  # "kokoro" (default), "piper" or "chatterbox"
     tts_voice: str | None
     tts_rate: int | None  # Words per minute (WPM), 200=normal
     tts_chatterbox_device: str  # "cuda", "auto", or "cpu" for Chatterbox
@@ -115,9 +115,14 @@ class Settings:
     # Kokoro TTS (CPU, via kokoro-onnx)
     kokoro_voice: str  # Voice ID — see KOKORO_VOICES in voice/tts_kokoro.py
     kokoro_speed: float  # Speech speed (1.0 = normal)
-    kokoro_lang: str  # Phonemization language ("en-us" or "en-gb")
+    kokoro_lang: str  # Phonemization language ("pt-br", "en-us", "en-gb", "es", ...)
     kokoro_model_path: str | None  # Path to .onnx model; None = auto-download
     kokoro_voices_path: str | None  # Path to voices .bin; None = auto-download
+    kokoro_robot_effect: float  # Robotic J.A.R.V.I.S. colouring, 0.0 (off) to 1.0
+
+    # Obsidian brain (vault mirror of the knowledge graph + skill map)
+    obsidian_enabled: bool
+    obsidian_vault_path: str  # Vault folder (created if missing)
 
     # Voice Input & Audio
     voice_device: str | None
@@ -407,7 +412,7 @@ def get_default_config() -> Dict[str, Any]:
 
         # Text-to-Speech
         "tts_enabled": True,
-        "tts_engine": "piper",  # "piper" (default) or "chatterbox"
+        "tts_engine": "kokoro",  # "kokoro" (default), "piper" or "chatterbox"
         "tts_voice": None,
         "tts_rate": 200,  # Words per minute (WPM), 200=normal
         "tts_chatterbox_device": "cuda",  # "cuda" (recommended), "auto", or "cpu"
@@ -424,11 +429,17 @@ def get_default_config() -> Dict[str, Any]:
         "tts_piper_sentence_silence": 0.2,  # Post-sentence silence in seconds
 
         # Kokoro TTS (CPU pipeline via kokoro-onnx)
-        "kokoro_voice": "af_heart",  # Voice ID (see KOKORO_VOICES in voice/tts_kokoro.py)
+        # Voice ID or weighted blend "voice:weight,..." (see KOKORO_VOICES in voice/tts_kokoro.py)
+        "kokoro_voice": "pm_alex:0.7,bm_george:0.3",
         "kokoro_speed": 1.0,         # Speech speed multiplier
-        "kokoro_lang": "en-us",      # Phonemization language
+        "kokoro_lang": "pt-br",      # Phonemization language
         "kokoro_model_path": None,   # Path to ONNX model; None = auto-download
         "kokoro_voices_path": None,  # Path to voices .bin; None = auto-download
+        "kokoro_robot_effect": 0.35,  # Robotic colouring: 0.0 = natural, 1.0 = fully synthetic
+
+        # Obsidian brain
+        "obsidian_enabled": True,
+        "obsidian_vault_path": str(Path.home() / "Obsidian" / "JARVIS"),
 
         # Voice Input & Audio
         "voice_device": None,
@@ -564,6 +575,7 @@ def export_example_config(include_db_path: bool = False) -> Dict[str, Any]:
     if not include_db_path:
         # Use a user-friendly path for examples
         config["db_path"] = "~/.local/share/jarvis/jarvis.db"
+        config["obsidian_vault_path"] = "~/Obsidian/JARVIS"
     return config
 
 
@@ -606,9 +618,9 @@ def load_settings() -> Settings:
     use_stdin = bool(merged.get("use_stdin", False))
     active_profiles = _ensure_list(merged.get("active_profiles"))
     tts_enabled = bool(merged.get("tts_enabled", True))
-    tts_engine = str(merged.get("tts_engine", "piper")).lower()
-    if tts_engine not in ("piper", "chatterbox"):
-        tts_engine = "piper"  # Default to piper if invalid value
+    tts_engine = str(merged.get("tts_engine", "kokoro")).lower()
+    if tts_engine not in ("kokoro", "piper", "chatterbox"):
+        tts_engine = "kokoro"  # Default to kokoro if invalid value
     tts_voice_val = merged.get("tts_voice")
     tts_voice = None if tts_voice_val in (None, "", "null") else str(tts_voice_val)
     tts_rate_val = merged.get("tts_rate")
@@ -638,9 +650,14 @@ def load_settings() -> Settings:
     tts_piper_sentence_silence = float(merged.get("tts_piper_sentence_silence", 0.2))
 
     # Kokoro TTS (CPU pipeline)
-    kokoro_voice = str(merged.get("kokoro_voice", "af_heart"))
+    kokoro_voice = str(merged.get("kokoro_voice") or defaults["kokoro_voice"])
     kokoro_speed = float(merged.get("kokoro_speed", 1.0))
-    kokoro_lang = str(merged.get("kokoro_lang", "en-us"))
+    kokoro_lang = str(merged.get("kokoro_lang") or defaults["kokoro_lang"])
+    kokoro_robot_effect = min(max(float(merged.get("kokoro_robot_effect", defaults["kokoro_robot_effect"])), 0.0), 1.0)
+    obsidian_enabled = bool(merged.get("obsidian_enabled", True))
+    obsidian_vault_path = os.path.expanduser(
+        str(merged.get("obsidian_vault_path") or defaults["obsidian_vault_path"])
+    )
     kokoro_model_path_val = merged.get("kokoro_model_path")
     kokoro_model_path = None if kokoro_model_path_val in (None, "", "null") else str(kokoro_model_path_val)
     kokoro_voices_path_val = merged.get("kokoro_voices_path")
@@ -807,6 +824,9 @@ def load_settings() -> Settings:
         kokoro_lang=kokoro_lang,
         kokoro_model_path=kokoro_model_path,
         kokoro_voices_path=kokoro_voices_path,
+        kokoro_robot_effect=kokoro_robot_effect,
+        obsidian_enabled=obsidian_enabled,
+        obsidian_vault_path=obsidian_vault_path,
 
         # Voice Input & Audio
         voice_device=voice_device,

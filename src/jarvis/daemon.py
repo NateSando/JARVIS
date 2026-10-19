@@ -467,6 +467,13 @@ def main() -> None:
         piper_noise_scale=cfg.tts_piper_noise_scale,
         piper_noise_w=cfg.tts_piper_noise_w,
         piper_sentence_silence=cfg.tts_piper_sentence_silence,
+        # Kokoro parameters
+        kokoro_voice=cfg.kokoro_voice,
+        kokoro_speed=cfg.kokoro_speed,
+        kokoro_lang=cfg.kokoro_lang,
+        kokoro_model_path=cfg.kokoro_model_path,
+        kokoro_voices_path=cfg.kokoro_voices_path,
+        kokoro_robot_effect=cfg.kokoro_robot_effect,
     )
     _global_tts_engine = tts  # Expose for face widget speaking animation
     if tts.enabled:

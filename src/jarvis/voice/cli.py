@@ -2,11 +2,11 @@
 
 Uso::
 
-    # Modo padrão (voz af_heart, modelo small)
+    # Modo padrão (voz J.A.R.V.I.S. do config.json, modelo small)
     python -m jarvis.voice.cli
 
-    # Com parâmetros
-    python -m jarvis.voice.cli --voice bm_george --whisper-model medium --kokoro-speed 1.1
+    # Com parâmetros (voz única ou mistura "voz:peso,...")
+    python -m jarvis.voice.cli --voice pm_alex:0.7,bm_george:0.3 --whisper-model medium --kokoro-speed 1.1
 
     # Listar vozes disponíveis
     python -m jarvis.voice.cli --list-voices
@@ -24,7 +24,7 @@ import sys
 import time
 
 from .pipeline import VoicePipeline
-from .tts_kokoro import KOKORO_VOICES
+from .tts_kokoro import KOKORO_VOICES, parse_voice_spec
 from .audio_io import list_input_devices
 
 
@@ -75,15 +75,20 @@ def main() -> int:
     # TTS
     parser.add_argument(
         "--voice",
-        default="af_heart",
-        choices=list(KOKORO_VOICES.keys()),
-        help="Voz do Kokoro TTS (padrão: af_heart)",
+        default=None,
+        help="Voz do Kokoro ou mistura 'voz:peso,...' (padrão: kokoro_voice do config.json)",
+    )
+    parser.add_argument(
+        "--robot",
+        type=float,
+        default=None,
+        help="Intensidade do efeito robótico 0.0–1.0 (padrão: kokoro_robot_effect do config.json)",
     )
     parser.add_argument(
         "--kokoro-speed",
         type=float,
-        default=1.0,
-        help="Velocidade de fala (padrão: 1.0)",
+        default=None,
+        help="Velocidade de fala (padrão: kokoro_speed do config.json)",
         dest="kokoro_speed",
     )
 
@@ -183,32 +188,41 @@ def main() -> int:
     chat_model = args.model
     system_prompt = args.system_prompt
 
+    from ..config import get_default_config
+    from ..system_prompt import build_system_prompt
+
+    defaults = get_default_config()
+    voice = args.voice
+    robot = args.robot
+    speed = args.kokoro_speed
+    lang = defaults["kokoro_lang"]
+    ollama_url = args.ollama_url
     try:
-        from ..config import load_settings  # type: ignore[import]
+        from ..config import load_settings
 
         settings = load_settings()
-        if chat_model is None:
-            chat_model = settings.ollama_chat_model
-        if system_prompt is None:
-            system_prompt = (
-                "Você é JARVIS, um assistente de voz conciso e inteligente. "
-                "Responda de forma natural, em poucas frases, sem usar markdown. "
-                "Seja direto e útil."
-            )
+        chat_model = chat_model or settings.ollama_chat_model
         ollama_url = settings.ollama_base_url
+        voice = voice or settings.kokoro_voice
+        robot = settings.kokoro_robot_effect if robot is None else robot
+        speed = settings.kokoro_speed if speed is None else speed
+        lang = settings.kokoro_lang
     except Exception:
-        if chat_model is None:
-            chat_model = "gemma:2b"
-        if system_prompt is None:
-            system_prompt = "Você é JARVIS, um assistente de voz conciso. Responda brevemente."
-        ollama_url = args.ollama_url
+        chat_model = chat_model or defaults["ollama_chat_model"]
+    voice = voice or defaults["kokoro_voice"]
+    robot = defaults["kokoro_robot_effect"] if robot is None else robot
+    speed = 1.0 if speed is None else speed
+    # Mesmo prompt mestre do daemon: a persona J.A.R.V.I.S. vale em qualquer modo.
+    system_prompt = system_prompt or build_system_prompt()
 
     _print_banner()
-    print(f"  Modelo Whisper : {args.whisper_model} (CPU/CTranslate2)")
-    print(f"  Modelo LLM     : {chat_model}")
-    print(f"  Voz Kokoro     : {args.voice} — {KOKORO_VOICES.get(args.voice, '?')}")
-    print(f"  Velocidade TTS : {args.kokoro_speed}x")
-    print(f"  Ollama URL     : {ollama_url}")
+    print(f"  🎙️  Modelo Whisper : {args.whisper_model} (CPU/CTranslate2)")
+    print(f"  🧠 Modelo LLM     : {chat_model}")
+    voice_desc = " + ".join(f"{n} {w:.0%}" for n, w in parse_voice_spec(voice))
+    print(f"  🗣️  Voz Kokoro     : {voice_desc} ({lang})")
+    print(f"  🤖 Efeito robótico: {robot:.2f}")
+    print(f"  ⏩ Velocidade TTS : {speed}x")
+    print(f"  🔗 Ollama URL     : {ollama_url}")
     print()
 
     # ------------------------------------------------------------------
@@ -230,8 +244,10 @@ def main() -> int:
         chat_model=chat_model,
         system_prompt=system_prompt,
         whisper_model_size=args.whisper_model,
-        kokoro_voice=args.voice,
-        kokoro_speed=args.kokoro_speed,
+        kokoro_voice=voice,
+        kokoro_speed=speed,
+        kokoro_lang=lang,
+        kokoro_robot_effect=robot,
         whisper_language=args.language,
         on_transcribed=on_transcribed,
         on_response=on_response,

@@ -965,7 +965,7 @@ class PiperTTS:
 
 
 def create_tts_engine(
-    engine: str = "piper",
+    engine: str = "kokoro",
     enabled: bool = True,
     voice: Optional[str] = None,
     rate: Optional[int] = None,
@@ -981,13 +981,33 @@ def create_tts_engine(
     piper_noise_scale: float = 0.667,
     piper_noise_w: float = 0.8,
     piper_sentence_silence: float = 0.2,
+    # Kokoro parameters
+    kokoro_voice: Optional[str] = None,
+    kokoro_speed: float = 1.0,
+    kokoro_lang: Optional[str] = None,
+    kokoro_model_path: Optional[str] = None,
+    kokoro_voices_path: Optional[str] = None,
+    kokoro_robot_effect: float = 0.35,
 ):
     """Factory function to create the appropriate TTS engine.
 
     Supported engines:
-    - "piper" (default): Neural TTS with auto-download, exact duration tracking
+    - "kokoro" (default): multilingual CPU TTS with the robotic J.A.R.V.I.S. voice
+    - "piper": Neural TTS with auto-download, exact duration tracking (English)
     - "chatterbox": AI voice with emotion control (requires PyTorch)
     """
+    if engine.lower() == "kokoro":
+        from .tts_kokoro import KokoroTTSEngine
+        from ..voice.tts_kokoro import DEFAULT_LANG, DEFAULT_VOICE
+        return KokoroTTSEngine(
+            enabled=enabled,
+            voice=kokoro_voice or DEFAULT_VOICE,
+            speed=kokoro_speed,
+            lang=kokoro_lang or DEFAULT_LANG,
+            model_path=kokoro_model_path,
+            voices_path=kokoro_voices_path,
+            robot_strength=kokoro_robot_effect,
+        )
     if engine.lower() == "chatterbox":
         return ChatterboxTTS(
             enabled=enabled,

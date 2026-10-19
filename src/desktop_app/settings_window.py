@@ -56,6 +56,7 @@ class FieldMeta:
 CATEGORIES = [
     ("llm", "🤖 LLM & AI Models"),
     ("tts", "🔊 Text-to-Speech"),
+    ("kokoro", "🤖 Kokoro (J.A.R.V.I.S. Voice)"),
     ("piper", "🎵 Piper TTS"),
     ("chatterbox", "🎭 Chatterbox TTS"),
     ("voice_input", "🎤 Voice Input"),
@@ -64,6 +65,7 @@ CATEGORIES = [
     ("vad", "📊 Voice Activity Detection"),
     ("timing", "⏱️ Timing & Windows"),
     ("memory", "🧠 Memory & Dialogue"),
+    ("obsidian", "🟣 Obsidian Brain"),
     ("location", "📍 Location"),
     ("features", "✨ Features"),
     ("mcps", "🔌 MCP Servers"),
@@ -130,9 +132,41 @@ def _build_field_metadata() -> List[FieldMeta]:
     f("tts_enabled", "Enable TTS", "Enable text-to-speech output",
       "tts", "bool")
     f("tts_engine", "TTS Engine", "Speech synthesis engine",
-      "tts", "choice", choices=[("piper", "Piper (Neural)"), ("chatterbox", "Chatterbox (Voice Cloning)")])
+      "tts", "choice", choices=[("kokoro", "Kokoro (J.A.R.V.I.S., multilingual)"),
+                                ("piper", "Piper (Neural, English)"),
+                                ("chatterbox", "Chatterbox (Voice Cloning)")])
     f("tts_rate", "Speech Rate", "Words per minute (200 = normal)",
       "tts", "int", min_val=80, max_val=400, step=10, suffix="WPM", nullable=True)
+
+    # --- Kokoro TTS ---
+    f("kokoro_voice", "Voice",
+      "Kokoro voice ID or weighted blend, e.g. pm_alex:0.7,bm_george:0.3",
+      "kokoro", "str")
+    f("kokoro_lang", "Pronunciation Language",
+      "Phonemisation language for Kokoro",
+      "kokoro", "choice",
+      choices=[("pt-br", "Português (Brasil)"), ("en-gb", "English (UK)"),
+               ("en-us", "English (US)"), ("es", "Español"), ("fr-fr", "Français"),
+               ("it", "Italiano"), ("ja", "日本語"), ("cmn", "中文")])
+    f("kokoro_speed", "Speed", "Speech speed multiplier (1.0 = normal)",
+      "kokoro", "float", min_val=0.5, max_val=2.0, step=0.05)
+    f("kokoro_robot_effect", "Robotic Effect",
+      "Metallic J.A.R.V.I.S. colouring: 0.0 = natural, 1.0 = fully synthetic",
+      "kokoro", "float", min_val=0.0, max_val=1.0, step=0.05)
+    f("kokoro_model_path", "Custom Model",
+      "Path to a Kokoro .onnx model (leave empty for automatic download)",
+      "kokoro", "str", nullable=True)
+    f("kokoro_voices_path", "Custom Voices File",
+      "Path to a Kokoro voices .bin file (leave empty for automatic download)",
+      "kokoro", "str", nullable=True)
+
+    # --- Obsidian Brain ---
+    f("obsidian_enabled", "Enable Obsidian Brain",
+      "Mirror learned knowledge into an Obsidian vault and use your notes as memory",
+      "obsidian", "bool")
+    f("obsidian_vault_path", "Vault Folder",
+      "Obsidian vault folder (created if missing). Point it at your own vault to include your notes.",
+      "obsidian", "str")
 
     # --- Piper TTS ---
     f("tts_piper_length_scale", "Speed Scale",
