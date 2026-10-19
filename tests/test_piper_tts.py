@@ -570,7 +570,10 @@ class TestPiperVoiceDownloadRetry:
 
         with patch("requests.get", side_effect=mock_get):
             with patch("src.jarvis.output.tts._get_piper_models_dir", return_value=tmp_path):
-                with patch("src.jarvis.output.tts.time.sleep") as mock_sleep:
+                # Patch the module's own ``time`` reference, not ``time.sleep`` on the
+                # shared module: other threads sleeping meanwhile would be recorded.
+                with patch("src.jarvis.output.tts.time") as mock_time:
+                    mock_sleep = mock_time.sleep
                     result = _download_piper_voice("en_GB-alan-medium")
 
         assert result is not None
@@ -595,7 +598,10 @@ class TestPiperVoiceDownloadRetry:
 
         with patch("requests.get", side_effect=mock_get):
             with patch("src.jarvis.output.tts._get_piper_models_dir", return_value=tmp_path):
-                with patch("src.jarvis.output.tts.time.sleep") as mock_sleep:
+                # Patch the module's own ``time`` reference, not ``time.sleep`` on the
+                # shared module: other threads sleeping meanwhile would be recorded.
+                with patch("src.jarvis.output.tts.time") as mock_time:
+                    mock_sleep = mock_time.sleep
                     result = _download_piper_voice("en_GB-alan-medium")
 
         assert result is None

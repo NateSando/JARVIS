@@ -940,18 +940,15 @@ class TestCrossPlatformAudioHealthWarning:
                             listener._audio_q.get = fake_get
                             listener._callback_count = 0
 
-                            # time.time() is called first for _audio_start_time (baseline),
-                            # then in the loop for the health check (needs to be 6s later)
+                            # Every clock read advances 6 s, so the health check in
+                            # the loop always sees >5 s since the baseline, however
+                            # many reads start-up makes before setting it.
                             _base = time.time()
                             time_calls = [0]
 
                             def advancing_time():
                                 time_calls[0] += 1
-                                # First call sets _audio_start_time baseline
-                                if time_calls[0] == 1:
-                                    return _base
-                                # Subsequent calls return 6s later
-                                return _base + 6
+                                return _base + 6 * time_calls[0]
 
                             with patch("jarvis.listening.listener.time") as mock_time:
                                 mock_time.time.side_effect = advancing_time

@@ -687,6 +687,18 @@ class TestWebSearchTool:
 class TestBraveSearchHelper:
     """Isolated tests for the `_brave_search` helper."""
 
+    @pytest.fixture(autouse=True)
+    def offline_dns(self):
+        """Resolve hostnames to a public documentation IP so the SSRF check
+        runs without real DNS (CI and sandboxes are often offline)."""
+        import socket
+
+        def fake_getaddrinfo(host, *args, **kwargs):
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))]
+
+        with patch("src.jarvis.tools.builtin.web_search.socket.getaddrinfo", side_effect=fake_getaddrinfo):
+            yield
+
     @patch("src.jarvis.tools.builtin.web_search.requests.get")
     def test_returns_empty_without_key(self, mock_get):
         from src.jarvis.tools.builtin.web_search import _brave_search

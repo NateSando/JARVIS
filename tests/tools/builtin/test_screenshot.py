@@ -40,11 +40,15 @@ class TestScreenshotTool:
             def open(*a, **k):
                 return _StubImgCtx()
 
-        sys.modules['pytesseract'] = type('StubTess', (), {
-            'image_to_string': staticmethod(lambda *a, **k: 'Sample OCR text')
+        # patch.dict restores sys.modules afterwards so the stubs never leak
+        # into other tests (e.g. anything that needs the real Pillow).
+        stub_modules = patch.dict(sys.modules, {
+            'pytesseract': type('StubTess', (), {
+                'image_to_string': staticmethod(lambda *a, **k: 'Sample OCR text')
+            }),
+            'PIL': type('StubPIL', (), {'Image': _StubImage}),
+            'PIL.Image': _StubImage,
         })
-        sys.modules['PIL'] = type('StubPIL', (), {'Image': _StubImage})
-        sys.modules['PIL.Image'] = _StubImage
 
         # Indicate tools exist
         def which_side_effect(name):
@@ -55,7 +59,8 @@ class TestScreenshotTool:
         mock_proc.returncode = 0
         mock_run.return_value = mock_proc
 
-        with patch('tempfile.mkdtemp', return_value='/tmp/jarvis_ocr_test'), \
+        with stub_modules, \
+             patch('tempfile.mkdtemp', return_value='/tmp/jarvis_ocr_test'), \
              patch('os.path.exists', return_value=True), \
              patch('os.remove'), \
              patch('os.rmdir'):

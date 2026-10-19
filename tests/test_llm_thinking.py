@@ -224,17 +224,22 @@ class TestDictationThinking:
             assert payload["think"] is True
 
     def test_engine_stores_thinking(self):
+        from src.jarvis.dictation import dictation_engine
         from src.jarvis.dictation.dictation_engine import DictationEngine
 
-        engine = DictationEngine(
-            whisper_model_ref=lambda: MagicMock(),
-            whisper_backend_ref=lambda: "faster-whisper",
-            mlx_repo_ref=lambda: None,
-            hotkey="ctrl+shift+d",
-            sample_rate=16000,
-            transcribe_lock=threading.Lock(),
-            thinking=True,
-        )
+        # pynput can't import without a display server (headless CI); hotkey
+        # parsing only needs Key/KeyCode objects, which a MagicMock provides.
+        keyboard = dictation_engine.pynput_keyboard or MagicMock()
+        with patch.object(dictation_engine, "pynput_keyboard", keyboard):
+            engine = DictationEngine(
+                whisper_model_ref=lambda: MagicMock(),
+                whisper_backend_ref=lambda: "faster-whisper",
+                mlx_repo_ref=lambda: None,
+                hotkey="ctrl+shift+d",
+                sample_rate=16000,
+                transcribe_lock=threading.Lock(),
+                thinking=True,
+            )
         assert engine._thinking is True
 
 

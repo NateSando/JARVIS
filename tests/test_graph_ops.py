@@ -11,8 +11,11 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-# Mock 'requests' before importing graph_ops (which imports llm which needs requests)
-if "requests" not in sys.modules:
+# Stub 'requests' before importing graph_ops (which imports llm which needs
+# requests) only when it is not installed, so other test files keep the real one.
+try:
+    import requests  # noqa: F401
+except ImportError:
     sys.modules["requests"] = types.ModuleType("requests")
     sys.modules["requests"].post = MagicMock()
     sys.modules["requests"].exceptions = types.ModuleType("requests.exceptions")

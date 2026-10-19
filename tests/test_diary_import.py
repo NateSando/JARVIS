@@ -5,6 +5,7 @@ Covers:
 - /api/graph/import-diary streaming endpoint (requires flask)
 """
 
+import importlib
 import json
 import sqlite3
 import sys
@@ -14,7 +15,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Mock modules that may not be available in the test environment
+# Stub modules only when they genuinely cannot be imported. These stubs live
+# in sys.modules for the whole session (collection imports every test module
+# first), so stubbing a module that IS installed would silently replace it for
+# every other test file (Qt widgets, psutil, requests...).
 _MOCK_MODULES = [
     "PyQt6", "PyQt6.QtWidgets", "PyQt6.QtCore", "PyQt6.QtGui",
     "PyQt6.QtWebEngineWidgets", "PyQt6.sip",
@@ -22,11 +26,16 @@ _MOCK_MODULES = [
     "psutil",
 ]
 for _mod in _MOCK_MODULES:
-    if _mod not in sys.modules:
+    if _mod in sys.modules:
+        continue
+    try:
+        importlib.import_module(_mod)
+    except ImportError:
         sys.modules[_mod] = MagicMock()
 
-# Ensure requests.exceptions.Timeout is a proper exception class
-sys.modules["requests"].exceptions.Timeout = type("Timeout", (Exception,), {})
+if isinstance(sys.modules["requests"], MagicMock):
+    # Ensure requests.exceptions.Timeout is a proper exception class
+    sys.modules["requests"].exceptions.Timeout = type("Timeout", (Exception,), {})
 
 from src.jarvis.memory.db import Database
 

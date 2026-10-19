@@ -13,10 +13,31 @@ import pytest
 # Helpers
 # ---------------------------------------------------------------------------
 
+class _FakeKey:
+    """Stand-in for ``pynput.keyboard.Key``: any attribute is a distinct key."""
+
+    def __getattr__(self, name):
+        return f"Key.{name}"
+
+
+class _FakeKeyCode:
+    @staticmethod
+    def from_char(char):
+        return f"KeyCode.{char}"
+
+
+# pynput needs a display server (X11) to import on Linux, so it is missing in
+# headless CI. Tests that only exercise audio/transcription build the engine
+# with this fake keyboard instead of skipping.
+_FAKE_KEYBOARD = type("FakeKeyboard", (), {"Key": _FakeKey(), "KeyCode": _FakeKeyCode})
+
+
 def _make_engine(**overrides):
     """Create a DictationEngine with sensible test defaults."""
+    from src.jarvis.dictation import dictation_engine
     from src.jarvis.dictation.dictation_engine import DictationEngine
 
+    keyboard = dictation_engine.pynput_keyboard or _FAKE_KEYBOARD
     defaults = dict(
         whisper_model_ref=lambda: MagicMock(),
         whisper_backend_ref=lambda: "faster-whisper",
@@ -28,7 +49,8 @@ def _make_engine(**overrides):
         transcribe_lock=threading.Lock(),
     )
     defaults.update(overrides)
-    return DictationEngine(**defaults)
+    with patch.object(dictation_engine, "pynput_keyboard", keyboard):
+        return DictationEngine(**defaults)
 
 
 # ---------------------------------------------------------------------------
