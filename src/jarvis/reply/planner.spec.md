@@ -38,7 +38,7 @@ integration in `src/jarvis/reply/engine.py`.
 
 ### When the planner runs
 
-- After the dialogue context is assembled, MCP tools are loaded, and
+- After the dialogue context is assembled and
   the tool router has produced a narrowed catalogue. Memory search
   runs *after* the planner so it can be gated on its output.
 - The planner sees the **router-narrowed** tool catalogue (name +
@@ -59,7 +59,7 @@ The planner must track the chat model. The plan is the scaffolding the
 chat model follows; a weaker planner on top of a stronger chat model
 produces bad scaffolding the chat model then fights against. The chat
 model is also the one the user picked during setup as their quality
-target, so upgrading it (through the setup wizard or config) must
+target, so upgrading it (through settings or config) must
 automatically upgrade plan quality without requiring a second choice.
 
 Note: the planner pays a cache miss relative to the tool router, which

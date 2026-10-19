@@ -30,23 +30,6 @@ datas = [
     (str(src_path / 'desktop_app' / 'desktop_assets' / '*.png'), 'desktop_app/desktop_assets'),
 ]
 
-# Collect Piper TTS data files (espeak-ng-data is required for phonemization)
-try:
-    import piper
-    piper_path = Path(piper.__file__).parent
-    # espeak-ng-data contains phoneme data needed for TTS
-    espeak_data = piper_path / 'espeak-ng-data'
-    if espeak_data.exists():
-        datas.append((str(espeak_data), 'piper/espeak-ng-data'))
-        print(f"Bundling Piper espeak-ng-data from {espeak_data}")
-    # tashkeel contains Arabic diacritization data
-    tashkeel_data = piper_path / 'tashkeel'
-    if tashkeel_data.exists():
-        datas.append((str(tashkeel_data), 'piper/tashkeel'))
-        print(f"Bundling Piper tashkeel from {tashkeel_data}")
-except ImportError:
-    print("Warning: piper not installed, TTS may not work in bundle")
-
 # Kokoro TTS: kokoro_onnx ships config.json; espeakng_loader ships the
 # espeak-ng shared library + phoneme data used for multilingual phonemisation
 # (collected as data files so espeakng_loader finds them next to its module).
@@ -105,14 +88,12 @@ hiddenimports = [
     # Desktop app modules
     'desktop_app',
     'desktop_app.app',
-    'desktop_app.splash_screen',
-    'desktop_app.setup_wizard',
-    'desktop_app.updater',
-    'desktop_app.update_dialog',
     'desktop_app.themes',
-    'desktop_app.face_widget',
-    'desktop_app.diary_dialog',
-    'desktop_app.memory_viewer',
+    'desktop_app.brain_server',
+    'desktop_app.ollama_setup',
+    'desktop_app.settings_window',
+    'desktop_app.cuda_recovery',
+    'desktop_app.paths',
     # Listening modules
     'jarvis.listening',
     'jarvis.listening.echo_detection',
@@ -144,15 +125,7 @@ hiddenimports = [
     'jarvis.brain.sync',
     'jarvis.brain.brain_map',
     'desktop_app.brain_page',
-    # Piper TTS (local neural TTS)
-    'piper',
-    'piper.voice',
-    'piper.config',
-    'piper.download',
-    'piper.download_voices',
-    'piper.phonemize_espeak',
-    'piper.phoneme_ids',
-    # ONNX Runtime (required by Piper for model inference)
+    # ONNX Runtime (required by Kokoro for model inference)
     'onnxruntime',
     'onnxruntime.capi',
     'onnxruntime.capi._pybind_state',
@@ -171,16 +144,13 @@ hiddenimports = [
     'jarvis.tools.builtin',
     'jarvis.tools.builtin.fetch_web_page',
     'jarvis.tools.builtin.local_files',
-    'jarvis.tools.builtin.nutrition',
-    'jarvis.tools.builtin.nutrition.delete_meal',
-    'jarvis.tools.builtin.nutrition.fetch_meals',
-    'jarvis.tools.builtin.nutrition.log_meal',
-    'jarvis.tools.builtin.recall_conversation',
-    'jarvis.tools.builtin.refresh_mcp_tools',
+    'jarvis.tools.builtin.code_access',
+    'jarvis.tools.builtin.code_access.policy',
+    'jarvis.tools.builtin.code_access.scanner',
+    'jarvis.tools.builtin.code_access.code_inspect',
+    'jarvis.tools.builtin.code_access.system_info',
     'jarvis.tools.builtin.screenshot',
     'jarvis.tools.builtin.web_search',
-    'jarvis.tools.external',
-    'jarvis.tools.external.mcp_client',
     # Utils modules
     'jarvis.utils',
     'jarvis.utils.fast_vector_store',
@@ -193,7 +163,7 @@ hiddenimports = [
     'PyQt6.QtGui',
     'PyQt6.QtWidgets',
     'PyQt6.sip',
-    # PyQt6 WebEngine (for embedded memory viewer)
+    # PyQt6 WebEngine (for the embedded brain window)
     'PyQt6.QtWebEngineWidgets',
     'PyQt6.QtWebEngineCore',
     'PyQt6.QtWebChannel',
@@ -263,10 +233,9 @@ a = Analysis(
     excludes=[
         # Exclude heavy packages to keep bundle size reasonable
         'psycopg2',  # Not used and causes OpenSSL conflicts
-        'torch',  # PyTorch is 1.5-2GB - chatterbox TTS is optional
+        'torch',  # PyTorch is 1.5-2GB and not needed
         'torchaudio',
         'torchvision',
-        'chatterbox',  # Optional TTS engine (uses PyTorch)
         'transformers',  # Heavy ML library (not needed, faster_whisper uses ctranslate2)
         'safetensors',
         'accelerate',
@@ -295,7 +264,6 @@ excluded_binary_patterns = [
     'cv2', 'opencv', 'libopencv',  # OpenCV (~500MB)
     'sklearn', 'scikit',  # scikit-learn
     'transformers',  # Heavy ML library
-    'chatterbox',
     'matplotlib',
     # Note: Keep huggingface_hub (needed by faster_whisper for model downloads)
     # Note: Keep libopenblas (needed by numpy) and libfreetype (needed by av/ffmpeg)

@@ -62,8 +62,8 @@ echo.
 
 REM Run the desktop app
 echo Starting desktop app...
-echo    Click the system tray icon to open menu
-echo    Select 'Start Listening' from menu to begin
+echo    The brain window opens automatically
+echo    Listening starts as soon as Ollama is ready (say Jarvis)
 echo    Or press Ctrl+C to quit
 echo.
 

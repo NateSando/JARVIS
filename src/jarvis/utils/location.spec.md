@@ -85,5 +85,4 @@ Two independent caches exist, each with in-memory and on-disk tiers:
 
 - **Daemon** (`src/jarvis/daemon.py`): Calls `get_location_context` at startup using config values.
 - **Reply Engine** (`src/jarvis/reply/engine.py`): Refreshes location context each agentic turn via `get_location_context`.
-- **Setup Wizard** (`src/desktop_app/setup_wizard.py`): Uses `get_location_context` and `get_location_info` for status display and IP validation. Skips the location page entirely when `location_enabled=false`. Uses the OpenDNS resolver (not an external website) for the "Detect My IP" button. IP validation reuses the core `_is_private_ip` and `_is_cgnat_ip` helpers.
 - **Settings UI** (`src/desktop_app/settings_window.py`): Exposes all five config keys as toggleable fields.

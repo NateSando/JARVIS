@@ -58,11 +58,11 @@ During reply enrichment (Step 4b in `reply/engine.py`, same gate as the knowledg
 
 - Daemon start (`obsidian_enabled`): seed skill areas, write the hub, mirror the graph. Runs in a background thread; never blocks start-up.
 - Graph mutations: a listener schedules a debounced (2 s) re-mirror.
-- Brain view request: the memory viewer runs the same idempotent sync before building the map, so the view is current even when the daemon is off.
+- Brain view request: the brain server runs the same idempotent sync before building the map, so the view is current even when the daemon is off.
 
 ## Brain View (desktop, `desktop_app/brain_page.py`)
 
-Served by the memory viewer at `/cerebro` (data at `/api/cerebro`), opened from the tray as "🧠 Cérebro".
+Served by `desktop_app/brain_server.py` on 127.0.0.1 at `/cerebro` (data at `/api/cerebro`). The brain window opens automatically at launch and from the tray ("🧠 Abrir Cérebro").
 - Canvas 2D, no external scripts (works offline). Shape follows Obsidian's graph view: every node spawns in one disc and central gravity balances spatial-grid repulsion + link springs, so the brain settles into a single round sphere (not per-area clusters). Each frame stays ~O(n); the simulation cools but never fully freezes (a gentle drift keeps small graphs alive), large settled graphs stop redrawing until something changes, and dragging re-heats it.
 - Labels are hidden by default so the sphere stays clean. Hovering a node names it and every node linked to it (neighbours highlighted, everything else dimmed), and a card shows the area, every point the note holds ("O que eu sei") and its connections. Searching names the matches.
 - Click pins the card; search filters by name/point; the (collapsed) legend toggles areas; wheel zooms, drag pans, nodes are draggable.

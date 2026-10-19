@@ -76,10 +76,10 @@ python src/desktop_app/desktop_assets/generate_icons.py
 echo ""
 
 # Run the desktop app
-echo "🚀 Starting desktop app..."
-echo "   Click the system tray icon to open menu"
-echo "   Select 'Start Listening' from menu to begin"
-echo "   Or press Ctrl+C to quit"
+echo "🚀 Starting J.A.R.V.I.S..."
+echo "   🧠 The brain window opens automatically"
+echo "   🎤 Listening starts as soon as Ollama is ready (say \"Jarvis\")"
+echo "   ⏹️  Press Ctrl+C to quit"
 echo ""
 
 # Set PYTHONPATH to include src directory (already at project root)
