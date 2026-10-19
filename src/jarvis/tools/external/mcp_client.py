@@ -6,8 +6,17 @@ import shutil
 from typing import Any, Dict, Optional, List
 from contextlib import asynccontextmanager
 
-from mcp import ClientSession  # type: ignore
-from mcp.client.stdio import stdio_client, StdioServerParameters  # type: ignore
+# MCP is optional: a broken or missing ``mcp`` install (e.g. a pydantic it
+# doesn't support) must disable MCP integrations, not stop Jarvis starting.
+try:
+    from mcp import ClientSession  # type: ignore
+    from mcp.client.stdio import stdio_client, StdioServerParameters  # type: ignore
+    MCP_IMPORT_ERROR: Optional[str] = None
+except ImportError as _mcp_exc:  # pragma: no cover - exercised via tests with a stubbed import
+    ClientSession = None  # type: ignore[assignment,misc]
+    stdio_client = None  # type: ignore[assignment]
+    StdioServerParameters = None  # type: ignore[assignment,misc]
+    MCP_IMPORT_ERROR = f"MCP library unavailable: {_mcp_exc}"
 
 
 import glob as _glob

@@ -24,7 +24,7 @@ from .builtin.stop import StopTool
 from .builtin.tool_search import ToolSearchTool
 from .types import ToolExecutionResult
 from ..config import Settings
-from .external.mcp_client import MCPClient
+from .external.mcp_client import MCP_IMPORT_ERROR, MCPClient
 from ..debug import debug_log
 
 
@@ -129,6 +129,9 @@ def discover_mcp_tools(mcps_config: Dict[str, Any]) -> Tuple[Dict[str, ToolSpec]
     """
     if not mcps_config:
         return {}, {}
+    if MCP_IMPORT_ERROR:
+        debug_log(f"MCP disabled: {MCP_IMPORT_ERROR}", "mcp")
+        return {}, {name: MCP_IMPORT_ERROR for name in mcps_config}
 
     try:
         client = MCPClient(mcps_config)
