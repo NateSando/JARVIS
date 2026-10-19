@@ -360,7 +360,6 @@ class VoiceListener(threading.Thread):
         self.tts = tts
         self.dialogue_memory = dialogue_memory
         self._should_stop = False
-        self._dictation_active = False  # Pause flag set by dictation engine
         self._first_utterance = True  # Suppress turn separator before the very first transcription
         # ISO-639-1 code Whisper detected for the most recent utterance.
         # Updated at every successful transcription site (MLX + faster-
@@ -1422,7 +1421,7 @@ class VoiceListener(threading.Thread):
     def _on_audio(self, indata, frames, time_info, status):
         """Audio callback from sounddevice."""
         try:
-            if self._should_stop or self._dictation_active:
+            if self._should_stop:
                 return
             self._callback_count += 1
             chunk = (indata.copy() if hasattr(indata, "copy") else indata)

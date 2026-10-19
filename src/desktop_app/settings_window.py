@@ -72,23 +72,6 @@ CATEGORIES = [
 ]
 
 
-def _dictation_hotkey_choices() -> list:
-    """Build platform-aware dictation hotkey dropdown choices."""
-    from jarvis.dictation.dictation_engine import format_hotkey_display
-    from jarvis.config import _default_dictation_hotkey
-    default = _default_dictation_hotkey()
-    options = [
-        ("ctrl+alt", format_hotkey_display("ctrl+alt")),
-        ("ctrl+cmd", format_hotkey_display("ctrl+cmd")),
-        ("ctrl+shift+d", format_hotkey_display("ctrl+shift+d")),
-        ("ctrl+shift", format_hotkey_display("ctrl+shift")),
-    ]
-    return [
-        (val, f"{label} (default)" if val == default else label)
-        for val, label in options
-    ]
-
-
 def _build_field_metadata() -> List[FieldMeta]:
     """Build the metadata registry for all user-facing config fields."""
     fields = []
@@ -347,21 +330,6 @@ def _build_field_metadata() -> List[FieldMeta]:
     f("tune_enabled", "Startup Tune",
       "Play startup sound",
       "features", "bool")
-    f("dictation_enabled", "Dictation Mode",
-      "Hold a hotkey to record speech, release to paste transcription into any app",
-      "features", "bool")
-    f("dictation_hotkey", "Dictation Hotkey",
-      "Key combination to hold for dictation. Double-tap for hands-free mode.",
-      "features", "choice", choices=_dictation_hotkey_choices())
-    f("dictation_filler_removal", "Filler Word Removal",
-      "Use the local LLM to remove filler words (um, uh, like) from dictation output",
-      "features", "bool")
-    f("dictation_thinking_enabled", "Dictation Thinking Mode",
-      "Let the LLM think when cleaning dictation (adds latency after each dictation)",
-      "features", "bool")
-    f("dictation_custom_dictionary", "Custom Dictionary",
-      "Correction rules for dictation. Use 'wrong -> right' format (e.g. 'Jarvice -> Jarvis')",
-      "features", "list")
 
     # --- Advanced ---
     f("echo_energy_threshold", "Echo Energy Threshold",

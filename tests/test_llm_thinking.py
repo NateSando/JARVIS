@@ -33,12 +33,6 @@ class TestThinkingConfig:
         assert "intent_judge_thinking_enabled" in config
         assert config["intent_judge_thinking_enabled"] is False
 
-    def test_default_config_has_dictation_thinking_disabled(self):
-        """dictation_thinking_enabled should default to False."""
-        config = get_default_config()
-        assert "dictation_thinking_enabled" in config
-        assert config["dictation_thinking_enabled"] is False
-
 
 # ---------------------------------------------------------------------------
 # llm.py — payload construction
@@ -191,59 +185,6 @@ class TestIntentJudgeThinking:
 
 
 # ---------------------------------------------------------------------------
-# Dictation engine
-# ---------------------------------------------------------------------------
-
-class TestDictationThinking:
-    """Dictation engine respects the thinking config."""
-
-    def test_llm_clean_dictation_sends_think_false(self):
-        from src.jarvis.dictation.dictation_engine import _llm_clean_dictation
-
-        with patch("requests.post") as mock_post:
-            mock_resp = MagicMock()
-            mock_resp.status_code = 200
-            mock_resp.json.return_value = {"response": "cleaned"}
-            mock_post.return_value = mock_resp
-
-            _llm_clean_dictation("um hello", "http://localhost:11434", thinking=False)
-            payload = mock_post.call_args[1].get("json") or mock_post.call_args[0][1] if len(mock_post.call_args[0]) > 1 else mock_post.call_args[1]["json"]
-            assert payload["think"] is False
-
-    def test_llm_clean_dictation_sends_think_true(self):
-        from src.jarvis.dictation.dictation_engine import _llm_clean_dictation
-
-        with patch("requests.post") as mock_post:
-            mock_resp = MagicMock()
-            mock_resp.status_code = 200
-            mock_resp.json.return_value = {"response": "cleaned"}
-            mock_post.return_value = mock_resp
-
-            _llm_clean_dictation("um hello", "http://localhost:11434", thinking=True)
-            payload = mock_post.call_args[1].get("json") or mock_post.call_args[0][1] if len(mock_post.call_args[0]) > 1 else mock_post.call_args[1]["json"]
-            assert payload["think"] is True
-
-    def test_engine_stores_thinking(self):
-        from src.jarvis.dictation import dictation_engine
-        from src.jarvis.dictation.dictation_engine import DictationEngine
-
-        # pynput can't import without a display server (headless CI); hotkey
-        # parsing only needs Key/KeyCode objects, which a MagicMock provides.
-        keyboard = dictation_engine.pynput_keyboard or MagicMock()
-        with patch.object(dictation_engine, "pynput_keyboard", keyboard):
-            engine = DictationEngine(
-                whisper_model_ref=lambda: MagicMock(),
-                whisper_backend_ref=lambda: "faster-whisper",
-                mlx_repo_ref=lambda: None,
-                hotkey="ctrl+shift+d",
-                sample_rate=16000,
-                transcribe_lock=threading.Lock(),
-                thinking=True,
-            )
-        assert engine._thinking is True
-
-
-# ---------------------------------------------------------------------------
 # Settings window metadata
 # ---------------------------------------------------------------------------
 
@@ -271,17 +212,6 @@ class TestSettingsWindowThinking:
         field = next(fm for fm in FIELD_METADATA if fm.key == "intent_judge_thinking_enabled")
         assert field.field_type == "bool"
         assert field.category == "llm"
-
-    def test_field_metadata_includes_dictation_thinking(self):
-        from desktop_app.settings_window import FIELD_METADATA
-        keys = [fm.key for fm in FIELD_METADATA]
-        assert "dictation_thinking_enabled" in keys
-
-    def test_dictation_thinking_field_is_bool_in_features_category(self):
-        from desktop_app.settings_window import FIELD_METADATA
-        field = next(fm for fm in FIELD_METADATA if fm.key == "dictation_thinking_enabled")
-        assert field.field_type == "bool"
-        assert field.category == "features"
 
 
 # ---------------------------------------------------------------------------

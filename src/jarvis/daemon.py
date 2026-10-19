@@ -46,7 +46,6 @@ _global_stop_requested: bool = False
 _warm_profile_graph_listener = None  # registered callback, kept for shutdown unregister
 _brain_graph_listener = None  # Obsidian brain re-sync callback, kept for shutdown unregister
 _global_tts_engine = None  # TTS engine reference for face animation polling
-_global_dictation_engine = None  # Dictation engine reference for history UI
 
 # Shutdown timeout for diary update (shorter than normal to allow reasonable quit time)
 # Desktop app's stop_daemon() should wait at least this long + buffer
@@ -141,11 +140,6 @@ def is_stop_requested() -> bool:
 def get_tts_engine():
     """Get the global TTS engine for speaking state polling (used by face widget)."""
     return _global_tts_engine
-
-
-def get_dictation_engine():
-    """Get the global dictation engine (used by desktop app for history window)."""
-    return _global_dictation_engine
 
 
 def _install_signal_handlers() -> None:
@@ -303,7 +297,7 @@ def _check_and_update_diary(
 
 def main() -> None:
     """Main daemon entry point."""
-    global _global_dialogue_memory, _global_stop_requested, _global_tts_engine, _global_dictation_engine
+    global _global_dialogue_memory, _global_stop_requested, _global_tts_engine
     global _warm_profile_graph_listener, _brain_graph_listener
 
     # Reset stop flag at start (in case of restart)
@@ -477,67 +471,6 @@ def main() -> None:
     voice_thread.start()
     print("✓ Voice listener thread started (loading Whisper model in background)", flush=True)
 
-    # Initialize dictation engine (hold-to-dictate)
-    dictation = None
-    if bool(getattr(cfg, "dictation_enabled", True)):
-        try:
-            from .dictation.dictation_engine import DictationEngine as _DE  # noqa: F811
-
-            def _on_dictation_start():
-                voice_thread._dictation_active = True
-                try:
-                    from desktop_app.face_widget import JarvisState, get_jarvis_state
-                    get_jarvis_state().set_state(JarvisState.DICTATING)
-                except Exception:
-                    pass
-                debug_log("dictation started — listener paused", "dictation")
-
-            def _on_dictation_processing_start():
-                try:
-                    from desktop_app.face_widget import JarvisState, get_jarvis_state
-                    get_jarvis_state().set_state(JarvisState.DICTATION_PROCESSING)
-                except Exception:
-                    pass
-                debug_log("dictation processing started — transcribing captured audio", "dictation")
-
-            def _on_dictation_end():
-                voice_thread._dictation_active = False
-                try:
-                    from desktop_app.face_widget import JarvisState, get_jarvis_state
-                    get_jarvis_state().set_state(JarvisState.IDLE)
-                except Exception:
-                    pass
-                debug_log("dictation ended — listener resumed", "dictation")
-
-            dictation = _DE(
-                whisper_model_ref=lambda: voice_thread.model,
-                whisper_backend_ref=lambda: voice_thread._whisper_backend,
-                mlx_repo_ref=lambda: voice_thread._mlx_model_repo,
-                hotkey=cfg.dictation_hotkey,
-                sample_rate=int(getattr(cfg, "sample_rate", 16000)),
-                on_dictation_start=_on_dictation_start,
-                on_dictation_processing_start=_on_dictation_processing_start,
-                on_dictation_end=_on_dictation_end,
-                transcribe_lock=voice_thread.transcribe_lock,
-                voice_device=getattr(cfg, "voice_device", None),
-                filler_removal=getattr(cfg, "dictation_filler_removal", False),
-                custom_dictionary=getattr(cfg, "dictation_custom_dictionary", []),
-                ollama_base_url=getattr(cfg, "ollama_base_url", "http://127.0.0.1:11434"),
-                ollama_model=cfg.ollama_chat_model,
-                thinking=getattr(cfg, "dictation_thinking_enabled", False),
-            )
-            dictation.start()
-            _global_dictation_engine = dictation
-            if dictation._started:
-                from jarvis.dictation.dictation_engine import format_hotkey_display
-                hotkey_display = format_hotkey_display(cfg.dictation_hotkey)
-                print(f"🎙️ Dictation enabled (hold {hotkey_display} to dictate)", flush=True)
-        except Exception as e:
-            debug_log(f"dictation engine init failed: {e}", "dictation")
-            print(f"  ⚠ Dictation not available: {e}", flush=True)
-    else:
-        print("🎙️ Dictation disabled", flush=True)
-
     # Periodic diary update checking
     last_diary_check = time.time()
     diary_check_interval = 60.0
@@ -589,12 +522,6 @@ def main() -> None:
     finally:
         print("🔄 Daemon shutting down - saving memory...", flush=True)
         debug_log("daemon finally block starting - performing cleanup", "jarvis")
-
-        # Clean shutdown - stop dictation first
-        if dictation is not None:
-            debug_log("stopping dictation engine...", "jarvis")
-            dictation.stop()
-            debug_log("dictation engine stopped", "jarvis")
 
         if voice_thread is not None:
             debug_log("stopping voice thread...", "jarvis")

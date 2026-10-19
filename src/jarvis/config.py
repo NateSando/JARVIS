@@ -43,23 +43,6 @@ def get_supported_model_ids() -> set[str]:
     return set(SUPPORTED_CHAT_MODELS.keys())
 
 
-def _default_dictation_hotkey() -> str:
-    """Return the platform-appropriate default dictation hotkey.
-
-    Aligned with WisprFlow defaults:
-    - Windows: Ctrl+Win (pynput maps Win to ``cmd``)
-    - macOS: Fn is not detectable by pynput, so use Ctrl+Option (WisprFlow
-      fallback when Fn is unavailable)
-    - Linux: Ctrl+Alt (mirrors macOS fallback)
-    """
-    if sys.platform == "win32":
-        return "ctrl+cmd"
-    elif sys.platform == "darwin":
-        return "ctrl+alt"
-    else:
-        return "ctrl+alt"
-
-
 def _default_db_path() -> str:
     base = Path.home() / ".local" / "share" / "jarvis"
     base.mkdir(parents=True, exist_ok=True)
@@ -262,11 +245,6 @@ class Settings:
     # language.
     wikipedia_fallback_enabled: bool
 
-    # Dictation (hold-to-dictate)
-    dictation_enabled: bool
-    dictation_hotkey: str
-    dictation_filler_removal: bool
-    dictation_custom_dictionary: list
 
 
 
@@ -563,12 +541,6 @@ def get_default_config() -> Dict[str, Any]:
         "brave_search_api_key": "",
         "wikipedia_fallback_enabled": True,
 
-        # Dictation (hold-to-dictate, WisprFlow-like)
-        "dictation_enabled": True,
-        "dictation_hotkey": _default_dictation_hotkey(),
-        "dictation_filler_removal": False,
-        "dictation_thinking_enabled": False,  # Enable thinking for dictation filler removal (adds latency)
-        "dictation_custom_dictionary": [],
 
     }
 
@@ -767,11 +739,6 @@ def load_settings() -> Settings:
     web_search_enabled = bool(merged.get("web_search_enabled", True))
     brave_search_api_key = str(merged.get("brave_search_api_key", "") or "").strip()
     wikipedia_fallback_enabled = bool(merged.get("wikipedia_fallback_enabled", True))
-    dictation_enabled = bool(merged.get("dictation_enabled", True))
-    dictation_hotkey = str(merged.get("dictation_hotkey", _default_dictation_hotkey())).strip()
-    dictation_filler_removal = bool(merged.get("dictation_filler_removal", False))
-    raw_dict = merged.get("dictation_custom_dictionary", [])
-    dictation_custom_dictionary = list(raw_dict) if isinstance(raw_dict, list) else []
     whisper_min_confidence = float(merged.get("whisper_min_confidence", 0.4))
     whisper_no_speech_threshold = float(merged.get("whisper_no_speech_threshold", 0.5))
     whisper_min_audio_duration = float(merged.get("whisper_min_audio_duration", 0.3))
@@ -914,10 +881,5 @@ def load_settings() -> Settings:
         brave_search_api_key=brave_search_api_key,
         wikipedia_fallback_enabled=wikipedia_fallback_enabled,
 
-        # Dictation
-        dictation_enabled=dictation_enabled,
-        dictation_hotkey=dictation_hotkey,
-        dictation_filler_removal=dictation_filler_removal,
-        dictation_custom_dictionary=dictation_custom_dictionary,
 
     )
